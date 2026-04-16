@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+
+apps/web/node_modules
+apps/api/vendor
+apps/api/writable
+
+.cursorrules
