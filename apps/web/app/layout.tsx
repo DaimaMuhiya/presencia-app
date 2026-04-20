@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Manrope, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
+import { Toaster } from '@/components/ui/toaster'
 import './globals.css'
 
 const manrope = Manrope({ 
@@ -63,6 +64,7 @@ export default function RootLayout({
         <div className="mx-auto w-full max-w-md min-h-dvh relative">
           {children}
         </div>
+        <Toaster />
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
