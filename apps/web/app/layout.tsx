@@ -59,8 +59,15 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr" className={`${manrope.variable} ${inter.variable}`}>
-      <body className="font-sans antialiased bg-background min-h-dvh overflow-x-hidden touch-manipulation">
+    <html
+      lang="fr"
+      className={`${manrope.variable} ${inter.variable}`}
+      suppressHydrationWarning
+    >
+      <body
+        className="font-sans antialiased bg-background min-h-dvh overflow-x-hidden touch-manipulation"
+        suppressHydrationWarning
+      >
         <div className="mx-auto w-full max-w-md min-h-dvh relative">
           {children}
         </div>

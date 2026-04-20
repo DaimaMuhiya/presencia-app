@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock, MapPin, ScanLine } from 'lucide-react'
 import { AppLayout, PrimaryButton, StatusCard } from '@/components/presencia'
@@ -30,9 +30,17 @@ const MOCK_TODAY_STATUS: TodayStatus = {
   location: 'HQ - West Tower',
 }
 
+const noopSubscribe = () => () => {}
+
+/** true côté navigateur après hydratation — évite les divergences SSR / client pour l’horloge */
+function useIsClient() {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false)
+}
+
 export default function DashboardPage() {
   const router = useRouter()
-  const [currentTime, setCurrentTime] = useState(new Date())
+  const isClient = useIsClient()
+  const [currentTime, setCurrentTime] = useState(() => new Date())
   const [user, setUser] = useState<UserData | null>(null)
   const [todayStatus] = useState<TodayStatus>(MOCK_TODAY_STATUS)
 
@@ -48,13 +56,17 @@ export default function DashboardPage() {
     })
   }, [router])
 
-  // Update clock every second
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date())
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+    if (!isClient) return
+    let raf = 0
+    const tick = () => setCurrentTime(new Date())
+    raf = requestAnimationFrame(tick)
+    const timer = setInterval(tick, 1000)
+    return () => {
+      cancelAnimationFrame(raf)
+      clearInterval(timer)
+    }
+  }, [isClient])
 
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString('fr-FR', {
@@ -107,7 +119,7 @@ export default function DashboardPage() {
           {/* Greeting */}
           <div className="flex flex-col gap-1">
             <span className="font-sans font-semibold text-[10px] tracking-[1.2px] uppercase text-muted-foreground opacity-60">
-              {formatDate()}
+              {isClient ? formatDate() : '—'}
             </span>
             <h1 className="font-display font-extrabold text-2xl text-primary leading-tight">
               {user.name}
@@ -118,23 +130,23 @@ export default function DashboardPage() {
           <div className="relative pl-3">
             {/* Decorative bar */}
             <div 
-              className="absolute -left-0 top-1/2 -translate-y-1/2 w-1 h-16 bg-primary opacity-20 rounded-full"
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-16 bg-primary opacity-20 rounded-full"
               aria-hidden="true"
             />
             
             <div className="flex items-end gap-1">
               <span className="font-display font-extrabold text-[56px] leading-none tracking-[-2px] text-primary">
-                {formatTime(currentTime)}
+                {isClient ? formatTime(currentTime) : '--:--'}
               </span>
               <span className="font-display font-bold text-lg text-[#D5E3FD] pb-1">
-                {formatSeconds(currentTime)}
+                {isClient ? formatSeconds(currentTime) : '--'}
               </span>
             </div>
           </div>
 
           {/* Welcome message */}
           <p className="font-sans font-medium text-sm text-muted-foreground leading-relaxed">
-            {getGreeting()}, <strong>{user.firstName || user.name}</strong>. 
+            {isClient ? getGreeting() : 'Bonjour'}, <strong>{user.firstName || user.name}</strong>. 
             {todayStatus.checkedIn 
               ? ' Vous etes pointe pour aujourd\'hui.'
               : ' Pret a pointer votre presence?'}
