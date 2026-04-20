@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useMemo, useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Check, Sparkles, ArrowRight } from 'lucide-react'
 import { GlassCard, PrimaryButton } from '@/components/presencia'
@@ -10,30 +10,25 @@ import Image from 'next/image'
 function SuccessContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const [checkInTime, setCheckInTime] = useState<string>('')
-  const [user, setUser] = useState({
+  const timeParam = searchParams.get('time')
+  const checkInTime = useMemo(() => {
+    const time = timeParam ? new Date(timeParam) : new Date()
+    return time.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }, [timeParam])
+  const [user] = useState({
     name: 'Daima Muhiya',
     avatar: undefined as string | undefined,
   })
 
   useEffect(() => {
-    // Check authentication
     const isAuth = localStorage.getItem('isAuthenticated')
     if (!isAuth) {
       router.push('/')
-      return
     }
-
-    // Get check-in time from URL params or use current time
-    const timeParam = searchParams.get('time')
-    const time = timeParam ? new Date(timeParam) : new Date()
-    setCheckInTime(
-      time.toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    )
-  }, [router, searchParams])
+  }, [router])
 
   const handleDone = () => {
     router.push('/dashboard')

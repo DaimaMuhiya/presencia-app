@@ -50,7 +50,9 @@ export default function ScannerPage() {
         { enableHighAccuracy: true }
       )
     } else {
-      setGpsStatus('error')
+      queueMicrotask(() => {
+        setGpsStatus('error')
+      })
     }
   }, [])
 
