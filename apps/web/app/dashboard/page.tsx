@@ -3,8 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock, MapPin, ScanLine } from 'lucide-react'
-import { AppLayout, GlassCard, PrimaryButton, StatusCard } from '@/components/presencia'
-import { cn } from '@/lib/utils'
+import { AppLayout, PrimaryButton, StatusCard } from '@/components/presencia'
 
 interface UserData {
   name: string
@@ -18,34 +17,34 @@ interface TodayStatus {
   location?: string
 }
 
+/** Données de démo — à remplacer par un fetch API */
+const MOCK_USER: UserData = {
+  name: 'Daima Muhiya',
+  firstName: 'Daima',
+  avatar: undefined,
+}
+
+const MOCK_TODAY_STATUS: TodayStatus = {
+  checkedIn: false,
+  checkInTime: undefined,
+  location: 'HQ - West Tower',
+}
+
 export default function DashboardPage() {
   const router = useRouter()
   const [currentTime, setCurrentTime] = useState(new Date())
   const [user, setUser] = useState<UserData | null>(null)
-  const [todayStatus, setTodayStatus] = useState<TodayStatus>({
-    checkedIn: false,
-  })
+  const [todayStatus] = useState<TodayStatus>(MOCK_TODAY_STATUS)
 
-  // Check authentication
+  // Vérification auth (localStorage) — pas de setState synchrone pour les mocks
   useEffect(() => {
     const isAuth = localStorage.getItem('isAuthenticated')
     if (!isAuth) {
       router.push('/')
       return
     }
-
-    // Mock user data - replace with API call
-    setUser({
-      name: 'Daima Muhiya',
-      firstName: 'Daima',
-      avatar: undefined,
-    })
-
-    // Mock today's status - replace with API call
-    setTodayStatus({
-      checkedIn: false,
-      checkInTime: undefined,
-      location: 'HQ - West Tower',
+    queueMicrotask(() => {
+      setUser(MOCK_USER)
     })
   }, [router])
 
