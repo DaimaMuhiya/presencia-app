@@ -24,7 +24,7 @@ const MOCK_USER: UserProfile = {
   name: 'Daima Muhiya',
   position: 'Software Developer',
   employeeId: 'TR-99021',
-  department: 'Architecture',
+  department: 'Development',
   joiningDate: 'Jan 2022',
   workStatus: 'active',
   avatar: undefined,
