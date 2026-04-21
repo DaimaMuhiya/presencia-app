@@ -61,7 +61,6 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      data-scroll-behavior="smooth"
       className={`${manrope.variable} ${inter.variable}`}
       suppressHydrationWarning
     >

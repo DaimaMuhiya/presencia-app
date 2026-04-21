@@ -190,9 +190,12 @@ html, body {
   overscroll-behavior-y: none;
 }
 
-/* Smooth scrolling */
+/*
+ * Pas de scroll-behavior: smooth sur <html> : avec le routeur App Router, ça entre
+ * en conflit avec la restauration du scroll entre navigations (voir doc Next.js).
+ */
 html {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
 }
 
 /* Hide scrollbars but keep functionality */
