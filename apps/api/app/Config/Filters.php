@@ -34,6 +34,7 @@ class Filters extends BaseFilters
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
+        'auth' => \App\Filters\AuthFilter::class,
     ];
 
     /**
@@ -72,11 +73,14 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            // Autorise le navigateur de l'application web à appeler l'API.
+            'cors',
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',
         ],
         'after' => [
+            'cors',
             // 'honeypot',
             // 'secureheaders',
         ],

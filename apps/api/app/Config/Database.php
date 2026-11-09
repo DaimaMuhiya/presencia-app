@@ -20,16 +20,16 @@ class Database extends Config
     public string $defaultGroup = 'default';
 
     /**
-     * The default database connection.
+     * MySQL. Les valeurs réelles (nom de base, utilisateur) viennent du fichier .env.
      *
      * @var array<string, mixed>
      */
     public array $default = [
         'DSN'          => '',
         'hostname'     => 'localhost',
-        'username'     => '',
+        'username'     => 'root',
         'password'     => '',
-        'database'     => '',
+        'database'     => 'presencia',
         'DBDriver'     => 'MySQLi',
         'DBPrefix'     => '',
         'pConnect'     => false,
@@ -37,7 +37,11 @@ class Database extends Config
         'charset'      => 'utf8mb4',
         'DBCollat'     => 'utf8mb4_general_ci',
         'swapPre'      => '',
-        'encrypt'      => false,
+        // Le certificat du serveur est vérifié avec les autorités du système.
+        'encrypt'      => [
+            'ssl_ca'     => '/etc/ssl/cert.pem',
+            'ssl_verify' => true,
+        ],
         'compress'     => false,
         'strictOn'     => false,
         'failover'     => [],
