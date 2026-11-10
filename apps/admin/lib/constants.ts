@@ -50,6 +50,8 @@ export const ADMIN_MAIN_PADDING_X = "px-4 md:px-8";
 export const ADMIN_TOP_BAR_HEIGHT =
   "h-16 min-h-16 shrink-0 lg:h-16 lg:min-h-16";
 
+export const ADMIN_TOP_BAR_OFFSET = "pt-16";
+
 export const DEMO_ADMIN_PROFILE = {
   name: "Alex Rivers",
   email: "admin@presencia.io",
