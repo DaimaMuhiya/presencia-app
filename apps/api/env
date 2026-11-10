@@ -30,13 +30,18 @@
 # DATABASE
 #--------------------------------------------------------------------
 
-# database.default.hostname = localhost
-# database.default.database = ci4
-# database.default.username = root
-# database.default.password = root
+# MySQL
+# database.default.hostname = gateway01.ap-northeast-1.prod.aws.tidbcloud.com
+# database.default.database = test
+# database.default.username = uC99iWNPP3GSFcK.root
+# database.default.password = Hz6ryxA9gLuqPE92
 # database.default.DBDriver = MySQLi
 # database.default.DBPrefix =
-# database.default.port = 3306
+# database.default.port = 4000
+# database.default.charset = utf8mb4
+#
+# Mot de passe des comptes créés par php spark db:seed AuthSeeder
+# auth.seedPassword = '123456789*'
 
 # If you use MySQLi as tests, first update the values of Config\Database::$tests.
 # database.tests.hostname = localhost
@@ -48,6 +53,15 @@
 # database.tests.charset = utf8mb4
 # database.tests.DBCollat = utf8mb4_general_ci
 # database.tests.port = 3306
+
+#--------------------------------------------------------------------
+# EMAIL (Brevo)
+#--------------------------------------------------------------------
+
+# BREVO_SMTP_USER =
+# BREVO_SMTP_KEY =
+# BREVO_FROM_EMAIL =
+# MAIL_FROM_NAME = Presencia
 
 #--------------------------------------------------------------------
 # ENCRYPTION

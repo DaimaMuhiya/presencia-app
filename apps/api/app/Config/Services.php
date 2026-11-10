@@ -17,16 +17,20 @@ use CodeIgniter\Config\BaseService;
  * method format you should use for your service methods. For more examples,
  * see the core Services file at system/Config/Services.php.
  */
+use App\Libraries\AuthService;
+
 class Services extends BaseService
 {
-    /*
-     * public static function example($getShared = true)
-     * {
-     *     if ($getShared) {
-     *         return static::getSharedInstance('example');
-     *     }
-     *
-     *     return new \CodeIgniter\Example();
-     * }
+    /**
+     * Service d'authentification, partagé pendant toute la requête.
+     * Le filtre et le contrôleur voient ainsi le même utilisateur connecté.
      */
+    public static function auth(bool $getShared = true): AuthService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('auth');
+        }
+
+        return new AuthService();
+    }
 }
