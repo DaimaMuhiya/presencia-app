@@ -1,0 +1,1128 @@
+{
+    "openapi": "3.1.0",
+    "info": {
+        "title": "Presencia API",
+        "description": "Les réponses sont en JSON : `success`, `message`, et `data` quand l'action produit un contenu. Une saisie invalide ajoute `errors`, champ par champ.\n\nLa connexion se fait en deux temps. Un mot de passe correct n'émet pas encore de jeton : il ouvre un défi de dix minutes et envoie un code à six chiffres par email. Les jetons ne sont créés qu'après `POST /api/v1/auth/verify-otp`.\n\nLe jeton d'accès dure 15 minutes. Le jeton de renouvellement dure 12 heures, ou 30 jours si « garder ma session » a été demandé. Les deux ne sont stockés que sous forme d'empreinte.",
+        "summary": "Authentification des employés, administrateurs et super administrateurs.",
+        "version": "1.0.0"
+    },
+    "servers": [
+        {
+            "url": "/"
+        }
+    ],
+    "paths": {
+        "/api/v1/auth/login": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Démarrer la connexion",
+                "description": "Vérifie l'email et le mot de passe, puis envoie un code à six chiffres. Aucun jeton n'est émis à cette étape. Cinq tentatives sont autorisées par adresse IP et par email, sur 15 minutes.",
+                "operationId": "login",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LoginRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Code envoyé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/LoginChallengeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Email ou mot de passe incorrect.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Compte suspendu ou inactif.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Saisie incomplète ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Trop de tentatives.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/refresh": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Renouveler la session",
+                "description": "Échange un jeton de renouvellement contre une nouvelle paire. L'ancien jeton est consommé. S'il est présenté une seconde fois, toutes les sessions de la personne sont fermées.",
+                "operationId": "refreshSession",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RefreshRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Nouvelle paire de jetons.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SessionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton inconnu, déjà utilisé ou expiré.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le compte ne peut plus se connecter.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Jeton de renouvellement absent ou trop court.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/logout": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Fermer la session",
+                "description": "Révoque le jeton d'accès présenté dans `Authorization: Bearer`, le jeton de renouvellement du corps, ou les deux. La réponse reste un succès même si les jetons sont déjà périmés.",
+                "operationId": "logout",
+                "parameters": [
+                    {
+                        "name": "Authorization",
+                        "in": "header",
+                        "description": "Facultatif. Forme attendue : `Bearer {jeton d'accès}`.",
+                        "required": false,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/LogoutRequest"
+                            }
+                        }
+                    },
+                    "required": false
+                },
+                "responses": {
+                    "200": {
+                        "description": "Déconnexion acceptée.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/me": {
+            "get": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Profil de la session",
+                "description": "Réservé à un compte connecté et actif.",
+                "operationId": "currentUser",
+                "responses": {
+                    "200": {
+                        "description": "Profil public.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/forgot-password": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Demander un code de réinitialisation",
+                "description": "La réponse est la même que l'email corresponde à un compte actif ou non. Trois demandes sont autorisées par adresse IP et par email, sur une heure. Le code expire au bout de 15 minutes.",
+                "operationId": "forgotPassword",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ForgotPasswordRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Demande acceptée, sans indiquer si le compte existe.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Email absent ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Trop de demandes.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/verify-otp": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Terminer la connexion",
+                "description": "Vérifie le défi ouvert par `login` et le code reçu par email, puis émet les jetons. Le défi et le code doivent être ceux de la même session PHP. Cinq codes incorrects, ou un défi expiré, annulent la tentative.",
+                "operationId": "verifyLoginOtp",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VerifyOtpRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Session ouverte.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SessionResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Défi invalide, expiré ou différent de celui en cours.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le compte ne peut plus se connecter.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Code incorrect ou saisie invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "429": {
+                        "description": "Trop de codes incorrects.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/verify-reset-code": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Vérifier le code de réinitialisation",
+                "description": "Contrôle le code sans le consommer. `reset-password` le consomme ensuite.",
+                "operationId": "verifyResetCode",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/VerifyResetCodeRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Code encore valable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ResetCodeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Code invalide, expiré, ou saisie invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/reset-password": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Choisir un nouveau mot de passe",
+                "description": "Consomme le code de réinitialisation, met à jour le mot de passe et ferme toutes les sessions.",
+                "operationId": "resetPassword",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ResetPasswordRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mot de passe mis à jour.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le compte ne peut plus être réinitialisé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Code invalide, mots de passe différents, ou saisie invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/auth/password": {
+            "put": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Changer le mot de passe",
+                "description": "Réservé à un compte connecté. Les autres sessions sont fermées. La réponse contient une nouvelle paire de jetons pour l'appareil en cours.",
+                "operationId": "changePassword",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ChangePasswordRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Mot de passe modifié et session renouvelée.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/TokensResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Mot de passe actuel incorrect, confirmation différente, ou saisie invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/auth/request-access": {
+            "post": {
+                "tags": [
+                    "Authentification"
+                ],
+                "summary": "Demander un accès",
+                "description": "Enregistre la demande si l'email n'est pas déjà celui d'un compte ou d'une demande en attente. La réponse ne dit pas lequel des deux cas s'applique.",
+                "operationId": "requestAccess",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RequestAccessRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Demande acceptée, sans préciser si elle a été enregistrée.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Saisie incomplète ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "schemas": {
+            "ErrorResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": false
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Les informations envoyées sont incomplètes ou invalides."
+                    },
+                    "errors": {
+                        "type": "object",
+                        "description": "Présent seulement quand la saisie est invalide.",
+                        "additionalProperties": {
+                            "type": "string"
+                        },
+                        "example": {
+                            "email": "L'adresse email est obligatoire."
+                        }
+                    }
+                },
+                "required": [
+                    "success",
+                    "message"
+                ]
+            },
+            "MessageResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": [
+                            "object",
+                            "null"
+                        ],
+                        "example": null
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "User": {
+                "type": "object",
+                "description": "Profil public. Le mot de passe n'en fait jamais partie.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "work_email": {
+                        "type": "string",
+                        "format": "email"
+                    },
+                    "firstName": {
+                        "type": "string"
+                    },
+                    "lastName": {
+                        "type": "string"
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "last_name": {
+                        "type": "string"
+                    },
+                    "name": {
+                        "type": "string",
+                        "example": "Marie Dupont"
+                    },
+                    "employeeId": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "employee_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "position": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "job_title": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "role": {
+                        "type": "string",
+                        "enum": [
+                            "super_admin",
+                            "admin",
+                            "employee"
+                        ]
+                    },
+                    "workStatus": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "inactive",
+                            "suspended"
+                        ]
+                    },
+                    "employment_status": {
+                        "type": "string",
+                        "enum": [
+                            "active",
+                            "inactive",
+                            "suspended"
+                        ]
+                    },
+                    "joiningDate": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date"
+                    },
+                    "joining_date": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date"
+                    },
+                    "avatar": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "avatar_url": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "phone": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "email",
+                    "work_email",
+                    "firstName",
+                    "lastName",
+                    "name",
+                    "role",
+                    "workStatus",
+                    "employment_status"
+                ]
+            },
+            "LoginRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 150,
+                        "example": "marie.dupont@example.com"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "minLength": 8,
+                        "maxLength": 255
+                    },
+                    "remember": {
+                        "type": "boolean",
+                        "description": "Allonge le jeton de renouvellement à 30 jours. Alias acceptés : `rememberMe`, `remember_me`.",
+                        "example": false
+                    }
+                },
+                "required": [
+                    "email",
+                    "password"
+                ]
+            },
+            "LoginChallengeResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Un code de connexion a été envoyé par email."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "id": {
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "challenge_id": {
+                                "type": "string",
+                                "description": "À renvoyer avec le code reçu par email.",
+                                "minLength": 20,
+                                "maxLength": 128
+                            }
+                        },
+                        "required": [
+                            "id",
+                            "challenge_id"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "SessionResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Connexion réussie."
+                    },
+                    "data": {
+                        "$ref": "#/components/schemas/SessionData"
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "SessionData": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "user": {
+                        "$ref": "#/components/schemas/User"
+                    },
+                    "token": {
+                        "type": "string",
+                        "description": "Jeton d'accès opaque à placer dans Authorization: Bearer."
+                    },
+                    "refreshToken": {
+                        "type": "string",
+                        "description": "À usage unique. Le réutiliser ferme toutes les sessions."
+                    },
+                    "expiresIn": {
+                        "type": "integer",
+                        "description": "Durée de vie du jeton d'accès, en secondes.",
+                        "example": 900
+                    }
+                },
+                "required": [
+                    "user",
+                    "token",
+                    "refreshToken",
+                    "expiresIn"
+                ]
+            },
+            "RefreshRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "refreshToken": {
+                        "type": "string",
+                        "description": "Alias accepté : `refresh_token`.",
+                        "minLength": 20
+                    }
+                },
+                "required": [
+                    "refreshToken"
+                ]
+            },
+            "LogoutRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "refreshToken": {
+                        "type": "string",
+                        "description": "Facultatif. Alias accepté : `refresh_token`."
+                    }
+                }
+            },
+            "ForgotPasswordRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 150
+                    }
+                },
+                "required": [
+                    "email"
+                ]
+            },
+            "VerifyOtpRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "challenge_id": {
+                        "type": "string",
+                        "description": "Alias accepté : `challengeId`.",
+                        "minLength": 20,
+                        "maxLength": 128
+                    },
+                    "code": {
+                        "type": "string",
+                        "description": "Code à six chiffres reçu par email. Alias accepté : `otp`.",
+                        "pattern": "^\\d{6}$",
+                        "example": "123456"
+                    }
+                },
+                "required": [
+                    "challenge_id",
+                    "code"
+                ]
+            },
+            "VerifyResetCodeRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 150
+                    },
+                    "code": {
+                        "type": "string",
+                        "pattern": "^\\d{6}$",
+                        "example": "123456"
+                    }
+                },
+                "required": [
+                    "email",
+                    "code"
+                ]
+            },
+            "ResetCodeResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Code vérifié."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "email": {
+                                "type": "string",
+                                "format": "email"
+                            }
+                        },
+                        "required": [
+                            "email"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "ResetPasswordRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "email": {
+                        "type": "string",
+                        "format": "email",
+                        "maxLength": 150
+                    },
+                    "code": {
+                        "type": "string",
+                        "pattern": "^\\d{6}$",
+                        "example": "123456"
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "description": "Alias accepté : `newPassword`.",
+                        "minLength": 8,
+                        "maxLength": 255
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "format": "password",
+                        "description": "Facultatif. S'il est envoyé, il doit être identique à `password`. Alias accepté : `passwordConfirmation`."
+                    }
+                },
+                "required": [
+                    "email",
+                    "code",
+                    "password"
+                ]
+            },
+            "ChangePasswordRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "current_password": {
+                        "type": "string",
+                        "format": "password",
+                        "description": "Alias accepté : `currentPassword`."
+                    },
+                    "password": {
+                        "type": "string",
+                        "format": "password",
+                        "description": "Alias accepté : `newPassword`.",
+                        "minLength": 8,
+                        "maxLength": 255
+                    },
+                    "password_confirmation": {
+                        "type": "string",
+                        "format": "password",
+                        "description": "Facultatif. S'il est envoyé, il doit être identique à `password`. Alias accepté : `passwordConfirmation`."
+                    }
+                },
+                "required": [
+                    "current_password",
+                    "password"
+                ]
+            },
+            "TokensResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Mot de passe modifié."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "token": {
+                                "type": "string"
+                            },
+                            "refreshToken": {
+                                "type": "string"
+                            },
+                            "expiresIn": {
+                                "type": "integer",
+                                "example": 900
+                            }
+                        },
+                        "required": [
+                            "token",
+                            "refreshToken",
+                            "expiresIn"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "MeResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Profil chargé."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "user": {
+                                "$ref": "#/components/schemas/User"
+                            }
+                        },
+                        "required": [
+                            "user"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "RequestAccessRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "full_name": {
+                        "type": "string",
+                        "description": "Alias accepté : `fullName`.",
+                        "minLength": 2,
+                        "maxLength": 200,
+                        "example": "Marie Dupont"
+                    },
+                    "work_email": {
+                        "type": "string",
+                        "format": "email",
+                        "description": "Alias acceptés : `workEmail`, `email`.",
+                        "maxLength": 150,
+                        "example": "marie.dupont@example.com"
+                    },
+                    "message": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "maxLength": 2000
+                    }
+                },
+                "required": [
+                    "full_name",
+                    "work_email"
+                ]
+            }
+        },
+        "securitySchemes": {
+            "bearerAuth": {
+                "type": "http",
+                "description": "Jeton d'accès opaque renvoyé par la vérification du code de connexion. Ce n'est pas un JWT. Exemple d'en-tête : `Authorization: Bearer 7f3a…`.",
+                "scheme": "bearer"
+            }
+        }
+    },
+    "tags": [
+        {
+            "name": "Authentification",
+            "description": "Connexion, session, mot de passe oublié et demande d'accès."
+        }
+    ]
+}

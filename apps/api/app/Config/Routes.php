@@ -7,6 +7,9 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 
+// Documentation interactive. Le contrat est public/openapi.json.
+$routes->get('api/docs', 'Swagger::index');
+
 // Le navigateur envoie OPTIONS avant un appel depuis un autre port.
 // Le filtre cors répond à cette prévérification.
 $routes->options('api/v1/(:any)', static function () {
