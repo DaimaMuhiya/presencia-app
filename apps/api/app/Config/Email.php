@@ -6,9 +6,48 @@ use CodeIgniter\Config\BaseConfig;
 
 class Email extends BaseConfig
 {
-    public string $fromEmail  = 'noreply@presencia.com';
+    public string $fromEmail  = '';
     public string $fromName   = 'Presencia';
     public string $recipients = '';
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        // Brevo : smtp-relay.brevo.com, port 587, chiffrement TLS.
+        $this->protocol       = 'smtp';
+        $this->SMTPHost       = 'smtp-relay.brevo.com';
+        $this->SMTPPort       = 587;
+        $this->SMTPCrypto     = 'tls';
+        $this->SMTPAuthMethod = 'login';
+        $this->SMTPTimeout    = 20;
+        $this->mailType       = 'html';
+
+        $user = $this->envString('BREVO_SMTP_USER');
+        $key  = $this->envString('BREVO_SMTP_KEY');
+        $from = $this->envString('BREVO_FROM_EMAIL');
+        $name = $this->envString('MAIL_FROM_NAME');
+
+        if ($user !== '') {
+            $this->SMTPUser = $user;
+        }
+        if ($key !== '') {
+            $this->SMTPPass = $key;
+        }
+        if ($from !== '') {
+            $this->fromEmail = $from;
+        }
+        if ($name !== '') {
+            $this->fromName = $name;
+        }
+    }
+
+    private function envString(string $name): string
+    {
+        $value = env($name);
+
+        return is_string($value) ? trim($value) : '';
+    }
 
     /**
      * The "user agent"
@@ -18,7 +57,7 @@ class Email extends BaseConfig
     /**
      * The mail sending protocol: mail, sendmail, smtp
      */
-    public string $protocol = 'mail';
+    public string $protocol = 'smtp';
 
     /**
      * The server path to Sendmail.
@@ -28,7 +67,7 @@ class Email extends BaseConfig
     /**
      * SMTP Server Hostname
      */
-    public string $SMTPHost = '';
+    public string $SMTPHost = 'smtp-relay.brevo.com';
 
     /**
      * Which SMTP authentication method to use: login, plain
@@ -48,12 +87,12 @@ class Email extends BaseConfig
     /**
      * SMTP Port
      */
-    public int $SMTPPort = 25;
+    public int $SMTPPort = 587;
 
     /**
      * SMTP Timeout (in seconds)
      */
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout = 20;
 
     /**
      * Enable persistent SMTP connections
@@ -82,7 +121,7 @@ class Email extends BaseConfig
     /**
      * Type of mail, either 'text' or 'html'
      */
-    public string $mailType = 'text';
+    public string $mailType = 'html';
 
     /**
      * Character set (utf-8, iso-8859-1, etc.)

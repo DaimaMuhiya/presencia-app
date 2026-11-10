@@ -576,21 +576,15 @@ class AuthService
             ]);
         }
 
-        try {
-            $mail = service('email');
-            $mail->setTo($email);
-            $mail->setSubject('Code de connexion Presencia');
-            $mail->setMessage(view('emails/login_otp', [
+        $this->sendMail(
+            $email,
+            'Code de connexion Presencia',
+            view('emails/login_otp', [
                 'firstName' => $firstName,
                 'code'      => $code,
                 'minutes'   => (int) ($this->config()->loginChallengeTtl / 60),
-            ]));
-            $mail->send();
-        } catch (Throwable $exception) {
-            log_message('error', 'Envoi du code de connexion impossible : {message}', [
-                'message' => $exception->getMessage(),
-            ]);
-        }
+            ]),
+        );
     }
 
     private function sendResetCode(string $email, string $firstName, string $code): void
@@ -604,18 +598,43 @@ class AuthService
             ]);
         }
 
-        try {
-            $mail = service('email');
-            $mail->setTo($email);
-            $mail->setSubject('Code de réinitialisation Presencia');
-            $mail->setMessage(view('emails/password_reset', [
+        $this->sendMail(
+            $email,
+            'Code de réinitialisation Presencia',
+            view('emails/password_reset', [
                 'firstName' => $firstName,
                 'code'      => $code,
                 'minutes'   => (int) ($this->config()->passwordResetTtl / 60),
-            ]));
-            $mail->send();
+            ]),
+        );
+    }
+
+    /**
+     * Envoie un email via le SMTP configuré (Brevo).
+     * Un échec est écrit dans le journal, sans le mot de passe SMTP.
+     */
+    private function sendMail(string $to, string $subject, string $message): void
+    {
+        $config = config(\Config\Email::class);
+
+        if ($config->SMTPUser === '' || $config->SMTPPass === '' || $config->fromEmail === '') {
+            log_message('error', 'Email non envoyé : BREVO_SMTP_USER, BREVO_SMTP_KEY ou BREVO_FROM_EMAIL est vide.');
+
+            return;
+        }
+
+        try {
+            $mail = service('email');
+            $mail->clear(true);
+            $mail->setTo($to);
+            $mail->setSubject($subject);
+            $mail->setMessage($message);
+
+            if (! $mail->send(false)) {
+                log_message('error', 'Le serveur SMTP a refusé l\'email vers {to}.', ['to' => $to]);
+            }
         } catch (Throwable $exception) {
-            log_message('error', 'Envoi du code de réinitialisation impossible : {message}', [
+            log_message('error', 'Envoi de l\'email impossible : {message}', [
                 'message' => $exception->getMessage(),
             ]);
         }
