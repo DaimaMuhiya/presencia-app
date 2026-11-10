@@ -1,6 +1,9 @@
+"use client";
+
 import { AlertTriangle, Info, MapPin } from "lucide-react";
-import { DEMO_ALERTS } from "@/features/dashboard/demo-data";
-import type { OperationalAlert } from "@/types/dashboard";
+import { useDemoStore } from "@/features/demo/demo-store";
+import type { OperationalAlert } from "@/types/domain";
+import { useToast } from "@/components/providers/toast-provider";
 import { cn } from "@/lib/utils";
 
 const toneStyles = {
@@ -31,6 +34,8 @@ const toneStyles = {
 } as const;
 
 export function DashboardAlerts() {
+  const { alerts } = useDemoStore();
+
   return (
     <article className="rounded bg-surface p-6 lg:col-span-2">
       <header className="flex flex-wrap items-start justify-between gap-3">
@@ -42,18 +47,10 @@ export function DashboardAlerts() {
             Critical paths, scanners and geofence signals
           </p>
         </div>
-        <div className="flex gap-1.5">
-          <span className="rounded bg-warning-muted px-2 py-1 text-[10px] font-bold uppercase text-[#78350f]">
-            Warning
-          </span>
-          <span className="rounded bg-muted px-2 py-1 text-[10px] font-bold uppercase text-text-secondary">
-            All
-          </span>
-        </div>
       </header>
 
       <ul className="mt-5 space-y-3.5">
-        {DEMO_ALERTS.map((alert) => (
+        {alerts.map((alert) => (
           <AlertCard key={alert.id} alert={alert} />
         ))}
       </ul>
@@ -64,14 +61,10 @@ export function DashboardAlerts() {
 function AlertCard({ alert }: { alert: OperationalAlert }) {
   const style = toneStyles[alert.tone];
   const Icon = style.icon;
+  const { push } = useToast();
 
   return (
-    <li
-      className={cn(
-        "rounded border-l-4 p-3.5",
-        style.wrap
-      )}
-    >
+    <li className={cn("rounded border-l-4 p-3.5", style.wrap)}>
       <div className="flex gap-2.5">
         <Icon className={cn("mt-0.5 size-4 shrink-0", style.iconColor)} />
         <div className="min-w-0 flex-1 space-y-1">
@@ -84,27 +77,21 @@ function AlertCard({ alert }: { alert: OperationalAlert }) {
           <p className={cn("text-[11px] leading-relaxed", style.body)}>
             {alert.body}
           </p>
-          {alert.actions?.length ? (
-            <div className="flex justify-end gap-2 pt-1">
-              {alert.actions.map((action) => (
-                <button
-                  key={action.label}
-                  type="button"
-                  disabled
-                  className={cn(
-                    "rounded px-2.5 py-1 text-[11px] font-bold",
-                    action.primary
-                      ? alert.tone === "warning"
-                        ? "bg-amber-200/80 text-[#451a03]"
-                        : "bg-rose-200/80 text-[#4c0519]"
-                      : "bg-surface text-text-primary"
-                  )}
-                >
-                  {action.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
+          <div className="flex justify-end gap-2 pt-1">
+            <button
+              type="button"
+              onClick={() =>
+                push({
+                  tone: "success",
+                  title: "Action simulée",
+                  description: `${alert.title} — aucun backend connecté.`,
+                })
+              }
+              className="rounded bg-surface px-2.5 py-1 text-[11px] font-bold text-primary"
+            >
+              Acknowledge
+            </button>
+          </div>
         </div>
       </div>
     </li>

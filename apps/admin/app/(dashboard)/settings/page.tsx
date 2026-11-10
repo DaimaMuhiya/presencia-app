@@ -1,10 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { SettingsView } from "@/features/settings/settings-view";
 
 export default function SettingsPage() {
-  return (
-    <PlaceholderPage
-      moduleName="System Settings"
-      description="Paramètres de présence, sécurité, profil entreprise et intégrations."
-    />
-  );
+  return <SettingsView />;
 }

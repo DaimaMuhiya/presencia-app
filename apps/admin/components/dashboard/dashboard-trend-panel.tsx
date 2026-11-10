@@ -1,106 +1,84 @@
-import {
-  DEMO_TREND_CALLOUTS,
-  DEMO_TREND_POINTS,
-} from "@/features/dashboard/demo-data";
+"use client";
 
-const LEGEND = [
-  { label: "Present", color: "#00236F" },
-  { label: "Absent", color: "#F43F5E" },
-  { label: "Late", color: "#F59E0B" },
-] as const;
+import { AttendanceTrendChart } from "@/components/charts/attendance-trend-chart";
+import { TREND_SERIES } from "@/features/dashboard/selectors";
+import { useDemoStore } from "@/features/demo/demo-store";
 
-function scale(value: number, max: number, height: number) {
-  return height - (value / max) * (height - 16);
-}
+const CALLOUTS = [
+  { label: "Peak attendance", value: "Monday (91.2%)", hint: "Highest weekly density" },
+  {
+    label: "Weekly average",
+    value: "88.1% (Workdays)",
+    hint: "+1.2% vs prior week",
+    hintTone: "green" as const,
+  },
+  { label: "Late trend", value: "-1.8% Improving", hint: "Scanner sync optimized" },
+];
 
 export function DashboardTrendPanel() {
-  const w = 520;
-  const h = 180;
-  const max = Math.max(...DEMO_TREND_POINTS.map((p) => p.present));
-  const step = w / (DEMO_TREND_POINTS.length - 1);
+  const { workforce, dashboardFilters, setDashboardFilters } = useDemoStore();
 
-  const presentPath = DEMO_TREND_POINTS.map((p, i) => {
-    const x = i * step;
-    const y = scale(p.present, max, h);
-    return `${i === 0 ? "M" : "L"} ${x} ${y}`;
-  }).join(" ");
-
-  const areaPath = `${presentPath} L ${w} ${h} L 0 ${h} Z`;
+  const trendData = TREND_SERIES.map((point) =>
+    point.label === "Today"
+      ? {
+          ...point,
+          present: workforce.physicalAttendance,
+          absent: workforce.absentToday,
+          late: workforce.lateArrivals,
+        }
+      : { ...point }
+  );
 
   return (
     <article className="rounded bg-surface p-6 lg:col-span-2">
-      <TrendPanelHeader />
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h3 className="font-display text-base font-bold text-text-primary">
+            Attendance Evolution & Velocity
+          </h3>
+          <p className="mt-0.5 text-xs text-text-secondary">
+            Real-time and historical presence across campuses
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1 rounded bg-muted p-1">
+          {(
+            [
+              ["today", "7"],
+              ["7d", "15"],
+              ["30d", "30"],
+            ] as const
+          ).map(([period, label]) => (
+            <button
+              key={period}
+              type="button"
+              onClick={() => setDashboardFilters({ period })}
+              className={
+                dashboardFilters.period === period
+                  ? "rounded bg-surface px-2.5 py-1 text-[11px] font-semibold text-primary"
+                  : "rounded px-2.5 py-1 text-[11px] font-semibold text-text-secondary"
+              }
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </header>
 
       <div className="relative mt-4 overflow-hidden rounded bg-muted/50 p-4">
-        <svg
-          viewBox={`0 0 ${w} ${h + 24}`}
-          className="h-auto w-full"
-          role="img"
-          aria-label="Graphique de tendance des présences (démo)"
-        >
-          {[0.25, 0.5, 0.75].map((t) => (
-            <line
-              key={t}
-              x1={0}
-              x2={w}
-              y1={h * t}
-              y2={h * t}
-              stroke="rgba(197,197,211,0.35)"
-              strokeDasharray="4 4"
-            />
-          ))}
-          <path d={areaPath} fill="rgba(0,35,111,0.15)" />
-          <path
-            d={presentPath}
-            fill="none"
-            stroke="#00236F"
-            strokeWidth={2.5}
-          />
-          {DEMO_TREND_POINTS.map((p, i) => {
-            const x = i * step;
-            const y = scale(p.present, max, h);
-            const isToday = i === DEMO_TREND_POINTS.length - 1;
-            return (
-              <circle
-                key={p.label}
-                cx={x}
-                cy={y}
-                r={isToday ? 5 : 3.5}
-                fill="#00236F"
-                stroke={isToday ? "#fff" : "none"}
-                strokeWidth={2}
-              />
-            );
-          })}
-          {DEMO_TREND_POINTS.map((p, i) => (
-            <text
-              key={`${p.label}-x`}
-              x={i * step}
-              y={h + 18}
-              textAnchor="middle"
-              fill="#515F74"
-              fontSize={10}
-              fontWeight={600}
-            >
-              {p.label}
-            </text>
-          ))}
-        </svg>
-
+        <AttendanceTrendChart data={trendData} />
         <div className="absolute right-4 top-4 rounded bg-primary px-2.5 py-2 text-white shadow-lg">
           <p className="text-[10px] font-bold uppercase tracking-wide text-[#b6c4ff]">
             Today snapshot
           </p>
-          <p className="text-xs font-bold">422 present · 38 absent</p>
-          <p className="mt-0.5 flex gap-3 text-[10px] text-[#e6e8ea]">
-            <span>+2.1%</span>
-            <span>20 late</span>
+          <p className="text-xs font-bold">
+            {workforce.physicalAttendance} present · {workforce.absentToday} absent
           </p>
+          <p className="mt-0.5 text-[10px] text-[#e6e8ea]">{workforce.lateArrivals} late</p>
         </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        {DEMO_TREND_CALLOUTS.map((c) => (
+        {CALLOUTS.map((c) => (
           <div key={c.label} className="rounded bg-muted px-3 py-4">
             <p className="text-[10px] font-bold uppercase tracking-wide text-text-secondary">
               {c.label}
@@ -119,52 +97,5 @@ export function DashboardTrendPanel() {
         ))}
       </div>
     </article>
-  );
-}
-
-function TrendPanelHeader() {
-  return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div>
-        <h3 className="font-display text-base font-bold text-text-primary">
-          Attendance Evolution & Velocity
-        </h3>
-        <p className="mt-0.5 text-xs text-text-secondary">
-          Real-time and historical presence across campuses
-        </p>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-3">
-          {LEGEND.map((item) => (
-            <span
-              key={item.label}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary"
-            >
-              <span
-                className="size-2.5 rounded"
-                style={{ background: item.color }}
-              />
-              {item.label}
-            </span>
-          ))}
-        </div>
-        <div className="inline-flex rounded bg-muted p-1">
-          {["7", "15", "30"].map((d, i) => (
-            <button
-              key={d}
-              type="button"
-              disabled
-              className={
-                i === 0
-                  ? "rounded bg-surface px-2.5 py-1 text-[11px] font-semibold text-primary"
-                  : "rounded px-2.5 py-1 text-[11px] font-semibold text-text-secondary"
-              }
-            >
-              {d}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }

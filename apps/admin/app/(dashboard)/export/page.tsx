@@ -1,10 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { ExportView } from "@/features/export/export-view";
 
 export default function ExportPage() {
-  return (
-    <PlaceholderPage
-      moduleName="Export Tool"
-      description="Export CSV, Excel et PDF des données de présence."
-    />
-  );
+  return <ExportView />;
 }

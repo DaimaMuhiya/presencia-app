@@ -1,10 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { ReportsView } from "@/features/reports/reports-view";
 
 export default function ReportsPage() {
-  return (
-    <PlaceholderPage
-      moduleName="Reports"
-      description="Rapports périodiques et indicateurs agrégés pour la direction."
-    />
-  );
+  return <ReportsView />;
 }

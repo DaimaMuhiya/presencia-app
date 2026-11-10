@@ -1,20 +1,37 @@
-import type { ReactNode } from "react";
-import { Download, MapPin, Plus } from "lucide-react";
-import { DEMO_WELCOME } from "@/features/dashboard/demo-data";
+"use client";
 
-const PERIODS = ["Today", "Last 7 days", "Last 30 days", "Custom"] as const;
+import { Download, MapPin, Plus } from "lucide-react";
+import Link from "next/link";
+import { useDemoStore } from "@/features/demo/demo-store";
+import { Select } from "@/components/ui/select";
+import { useToast } from "@/components/providers/toast-provider";
+
+const PERIODS = [
+  { id: "today", label: "Today" },
+  { id: "7d", label: "Last 7 days" },
+  { id: "30d", label: "Last 30 days" },
+  { id: "custom", label: "Custom" },
+] as const;
 
 export function DashboardWelcomeControls() {
+  const {
+    settings,
+    departments,
+    dashboardFilters,
+    setDashboardFilters,
+  } = useDemoStore();
+  const { push } = useToast();
+
   return (
     <section className="flex flex-col gap-6 border-b border-transparent pb-2 lg:flex-row lg:items-start lg:justify-between">
       <div className="max-w-md space-y-2.5">
         <h2 className="font-display text-[30px] font-extrabold leading-9 tracking-tight text-text-primary">
-          {DEMO_WELCOME.greeting}
+          Good morning, {settings.profile.name.split(" ")[0]}
         </h2>
         <div className="flex flex-wrap gap-2">
           <span className="inline-flex items-center gap-1.5 rounded bg-[#e6e8ea] px-3 py-1 text-xs font-semibold text-text-secondary">
             <MapPin className="size-3 text-primary" aria-hidden />
-            {DEMO_WELCOME.campus}
+            {settings.organization.campus}
           </span>
           <span className="inline-flex items-center gap-1.5 rounded bg-success-muted px-3 py-1 text-xs font-medium text-success-fg">
             <span className="size-1.5 rounded bg-success" aria-hidden />
@@ -22,7 +39,8 @@ export function DashboardWelcomeControls() {
           </span>
         </div>
         <p className="text-xs font-medium leading-4 tracking-wide text-text-secondary">
-          {DEMO_WELCOME.dateLine}
+          Wednesday, October 25, 2023 • Comprehensive Operations Overview &
+          Physical Geofence Metrics
         </p>
       </div>
 
@@ -32,61 +50,68 @@ export function DashboardWelcomeControls() {
           role="tablist"
           aria-label="Période"
         >
-          {PERIODS.map((period, i) => (
+          {PERIODS.map((period) => (
             <button
-              key={period}
+              key={period.id}
               type="button"
-              disabled
               role="tab"
-              aria-selected={i === 0}
+              aria-selected={dashboardFilters.period === period.id}
+              onClick={() => {
+                if (period.id === "custom") {
+                  push({
+                    tone: "info",
+                    title: "Custom range (démo)",
+                    description:
+                      "Sélection de plage personnalisée simulée — intégration calendrier à venir.",
+                  });
+                  return;
+                }
+                setDashboardFilters({ period: period.id });
+              }}
               className={
-                i === 0
+                dashboardFilters.period === period.id
                   ? "rounded bg-surface px-3.5 py-1.5 text-xs font-bold text-primary"
                   : "rounded px-3 py-1.5 text-xs font-medium text-text-secondary"
               }
             >
-              {period}
+              {period.label}
             </button>
           ))}
         </div>
 
-        <ControlsRow>
-          <select
-            disabled
-            className="h-9 min-w-[12rem] appearance-none rounded bg-surface px-3.5 pr-9 text-xs font-semibold text-text-primary"
-            defaultValue="all"
+        <div className="flex flex-wrap items-center gap-2">
+          <Select
             aria-label="Département"
+            value={dashboardFilters.departmentId}
+            onChange={(e) =>
+              setDashboardFilters({ departmentId: e.target.value })
+            }
           >
             <option value="all">All departments</option>
-            <option>Engineering</option>
-            <option>Operations</option>
-          </select>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
 
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-2 rounded bg-surface px-4 py-2 text-xs font-semibold text-text-secondary"
+          <Link
+            href="/export"
+            className="inline-flex items-center gap-2 rounded bg-surface px-4 py-2 text-xs font-semibold text-text-secondary shadow-[0_0_0_1px_rgba(230,232,234,0.7)]"
           >
             <Download className="size-3" aria-hidden />
             Download Report
-          </button>
-        </ControlsRow>
+          </Link>
+        </div>
 
-        <button
-          type="button"
-          disabled
+        <Link
+          href="/qr-management"
           className="inline-flex w-fit items-center gap-2 rounded bg-linear-to-r from-primary to-primary-hover px-4 py-2.5 text-xs font-semibold text-white shadow-sm"
         >
           <Plus className="size-3.5" aria-hidden />
           New QR Pass
-        </button>
+        </Link>
       </div>
     </section>
-  );
-}
-
-function ControlsRow({ children }: { children: ReactNode }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">{children}</div>
   );
 }

@@ -1,10 +1,5 @@
-import { PlaceholderPage } from "@/components/layout/placeholder-page";
+import { AttendanceView } from "@/features/attendance/attendance-view";
 
-export default function AttendanceLogsPage() {
-  return (
-    <PlaceholderPage
-      moduleName="Attendance Logs"
-      description="Historique détaillé des pointages, filtres et export des journaux."
-    />
-  );
+export default function AttendancePage() {
+  return <AttendanceView />;
 }

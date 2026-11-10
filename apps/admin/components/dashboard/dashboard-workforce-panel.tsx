@@ -1,61 +1,25 @@
-import {
-  DEMO_ARRIVAL_WINDOWS,
-  DEMO_WORKFORCE_SLICES,
-} from "@/features/dashboard/demo-data";
+"use client";
 
-const total = DEMO_WORKFORCE_SLICES.reduce((s, x) => s + x.value, 0);
+import { WorkforceDonutChart } from "@/components/charts/workforce-donut-chart";
+import { useDemoStore } from "@/features/demo/demo-store";
 
-function DonutChart() {
-  const r = 70;
-  const c = 2 * Math.PI * r;
-  const segments = DEMO_WORKFORCE_SLICES.reduce<
-    { slice: (typeof DEMO_WORKFORCE_SLICES)[number]; len: number; offset: number }[]
-  >((acc, slice) => {
-    const len = (slice.value / total) * c;
-    const offset = acc.reduce((sum, item) => sum + item.len, 0);
-    acc.push({ slice, len, offset });
-    return acc;
-  }, []);
-
-  return (
-    <div className="relative flex items-center justify-center py-2">
-      <svg width={176} height={176} viewBox="0 0 176 176" aria-hidden>
-        <circle
-          cx={88}
-          cy={88}
-          r={r}
-          fill="none"
-          stroke="#F2F4F6"
-          strokeWidth={21}
-        />
-        {segments.map(({ slice, len, offset }) => (
-          <circle
-            key={slice.label}
-            cx={88}
-            cy={88}
-            r={r}
-            fill="none"
-            stroke={slice.color}
-            strokeWidth={21}
-            strokeDasharray={`${len} ${c - len}`}
-            strokeDashoffset={-offset}
-            transform="rotate(-90 88 88)"
-          />
-        ))}
-      </svg>
-      <div className="absolute text-center">
-        <p className="font-display text-2xl font-extrabold text-text-primary">
-          {total}
-        </p>
-        <p className="text-[10px] font-bold uppercase tracking-tight text-text-secondary">
-          Tracked
-        </p>
-      </div>
-    </div>
-  );
-}
+const ARRIVAL_WINDOWS = [
+  { label: "08:00 – 08:30", percent: "43.6%", width: 43.6, tone: "blue" as const },
+  { label: "08:30 – 09:00", percent: "51.7%", width: 51.7, tone: "indigo" as const },
+  { label: "After 09:00", percent: "4.7%", width: 4.7, tone: "amber" as const },
+];
 
 export function DashboardWorkforcePanel() {
+  const { workforce } = useDemoStore();
+
+  const slices = [
+    { label: "On-Time", value: workforce.onTimeArrivals, color: "#00236F" },
+    { label: "Late", value: workforce.lateArrivals, color: "#F59E0B" },
+    { label: "Remote", value: workforce.remoteMissions, color: "#3B82F6" },
+    { label: "Leave", value: workforce.plannedLeave, color: "#515F74" },
+    { label: "Unexcused", value: workforce.unexcusedAbsences, color: "#F43F5E" },
+  ];
+
   return (
     <article className="rounded bg-surface p-6">
       <header className="flex items-start justify-between gap-2">
@@ -63,17 +27,15 @@ export function DashboardWorkforcePanel() {
           <h3 className="font-display text-base font-bold text-text-primary">
             Workforce Status
           </h3>
-          <p className="text-xs text-text-secondary">
-            Real-time status breakdown
-          </p>
+          <p className="text-xs text-text-secondary">Real-time status breakdown</p>
         </div>
         <span className="text-xs font-bold text-text-secondary">Today</span>
       </header>
 
-      <DonutChart />
+      <WorkforceDonutChart workforce={workforce} />
 
       <div className="mt-2 grid grid-cols-2 gap-2">
-        {DEMO_WORKFORCE_SLICES.map((slice) => (
+        {slices.map((slice) => (
           <div
             key={slice.label}
             className="flex items-center justify-between rounded bg-muted px-2 py-2 text-xs"
@@ -95,7 +57,7 @@ export function DashboardWorkforcePanel() {
           Arrival timing windows
         </p>
         <ul className="space-y-2">
-          {DEMO_ARRIVAL_WINDOWS.map((row) => (
+          {ARRIVAL_WINDOWS.map((row) => (
             <li key={row.label} className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-text-secondary">{row.label}</span>

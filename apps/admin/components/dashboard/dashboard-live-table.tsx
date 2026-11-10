@@ -1,11 +1,90 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
 import { MoreHorizontal, Search } from "lucide-react";
-import {
-  DEMO_LIVE_ATTENDANCE,
-  DEMO_LIVE_PAGINATION,
-} from "@/features/dashboard/demo-data";
+import { paginate, sortBy } from "@/features/demo/metrics";
+import { useDemoStore } from "@/features/demo/demo-store";
+import { departmentName, attendanceLogLabel } from "@/lib/labels";
+import { Pagination } from "@/components/ui/pagination";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
 export function DashboardLiveTable() {
+  const { employees, attendanceRecords, departments, referenceDate } =
+    useDemoStore();
+  const [search, setSearch] = useState("");
+  const [departmentId, setDepartmentId] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+
+  type LiveRow = {
+    id: string;
+    name: string;
+    employeeCode: string;
+    department: string;
+    departmentId: string;
+    checkpoint: string;
+    checkIn: string;
+    checkOut: string | null;
+    verification: string;
+    status: string;
+    statusLabel: string;
+    late: boolean;
+  };
+
+  const rows = useMemo(() => {
+    const today = attendanceRecords.filter(
+      (r) =>
+        r.date === referenceDate &&
+        r.checkIn &&
+        (r.status === "on_time" || r.status === "late" || r.status === "remote")
+    );
+
+    const result: LiveRow[] = [];
+    for (const record of today) {
+      const employee = employees.find((e) => e.id === record.employeeId);
+      if (!employee) continue;
+      result.push({
+        id: record.id,
+        name: `${employee.firstName} ${employee.lastName}`,
+        employeeCode: employee.employeeCode,
+        department: departmentName(departments, record.departmentId),
+        departmentId: record.departmentId,
+        checkpoint: record.checkpointName,
+        checkIn: record.checkIn ?? "",
+        checkOut: record.checkOut,
+        verification: record.verification,
+        status: record.status,
+        statusLabel: attendanceLogLabel(record.status),
+        late: record.status === "late",
+      });
+    }
+    return result;
+  }, [attendanceRecords, employees, departments, referenceDate]);
+
+  const filtered = useMemo(() => {
+    let list = rows;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          r.employeeCode.toLowerCase().includes(q)
+      );
+    }
+    if (departmentId !== "all") {
+      list = list.filter((r) => r.departmentId === departmentId);
+    }
+    if (status !== "all") {
+      list = list.filter((r) => r.status === status);
+    }
+    return sortBy(list, (r) => r.checkIn ?? "", "desc");
+  }, [rows, search, departmentId, status]);
+
+  const paged = paginate(filtered, page, 8);
+
   return (
     <section className="rounded bg-surface p-6">
       <header className="flex flex-col gap-4 pb-2 lg:flex-row lg:items-center lg:justify-between">
@@ -22,33 +101,47 @@ export function DashboardLiveTable() {
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative">
             <Search className="absolute left-3 top-1/2 size-2.5 -translate-y-1/2 text-text-secondary" />
-            <input
-              disabled
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
               placeholder="Filter employee or ID..."
-              className="h-8 w-48 rounded bg-muted pl-8 pr-3 text-xs text-text-primary placeholder:text-text-secondary/60"
+              className="h-8 w-full min-w-[12rem] pl-8 text-xs"
             />
           </label>
-          <select
-            disabled
-            className="h-8 rounded bg-muted px-3 text-xs font-medium text-text-primary"
-            defaultValue="dept"
+          <Select
+            className="h-8 text-xs"
+            value={departmentId}
+            onChange={(e) => {
+              setDepartmentId(e.target.value);
+              setPage(1);
+            }}
           >
-            <option value="dept">Department</option>
-          </select>
-          <select
-            disabled
-            className="h-8 rounded bg-muted px-3 text-xs font-medium text-text-primary"
-            defaultValue="status"
+            <option value="all">All departments</option>
+            {departments.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </Select>
+          <Select
+            className="h-8 text-xs"
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
           >
-            <option value="status">Status</option>
-          </select>
-          <button
-            type="button"
-            disabled
-            className="text-xs font-bold text-primary"
-          >
+            <option value="all">All statuses</option>
+            <option value="on_time">On-Time</option>
+            <option value="late">Late</option>
+            <option value="remote">Remote</option>
+          </Select>
+          <Link href="/attendance" className="text-xs font-bold text-primary">
             View full logs
-          </button>
+          </Link>
         </div>
       </header>
 
@@ -73,7 +166,7 @@ export function DashboardLiveTable() {
             </tr>
           </thead>
           <tbody>
-            {DEMO_LIVE_ATTENDANCE.map((row) => (
+            {paged.items.map((row) => (
               <tr
                 key={row.id}
                 className={cn(
@@ -95,7 +188,7 @@ export function DashboardLiveTable() {
                     <div>
                       <p className="font-bold text-text-primary">{row.name}</p>
                       <p className="text-[10px] text-text-secondary">
-                        {row.employeeId}
+                        {row.employeeCode}
                       </p>
                     </div>
                   </div>
@@ -119,24 +212,16 @@ export function DashboardLiveTable() {
                   <span
                     className={cn(
                       "inline-flex items-center gap-1 rounded px-2.5 py-1 text-[11px] font-bold",
-                      row.status === "on-time"
+                      row.status === "on_time" || row.status === "remote"
                         ? "bg-[#d1fae5] text-success-fg"
                         : "bg-warning-muted text-[#92400e]"
                     )}
                   >
-                    <span
-                      className={cn(
-                        "size-1.5 rounded",
-                        row.status === "on-time"
-                          ? "bg-success-dark"
-                          : "bg-amber-600"
-                      )}
-                    />
                     {row.statusLabel}
                   </span>
                 </td>
                 <td className="px-4 py-4 text-right">
-                  <button type="button" disabled className="text-text-secondary">
+                  <button type="button" className="text-text-secondary">
                     <MoreHorizontal className="size-4" />
                   </button>
                 </td>
@@ -146,46 +231,16 @@ export function DashboardLiveTable() {
         </table>
       </div>
 
-      <footer className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3">
-        <p className="text-xs text-text-secondary">
-          Showing {DEMO_LIVE_PAGINATION.from}–{DEMO_LIVE_PAGINATION.to} of{" "}
-          {DEMO_LIVE_PAGINATION.total} live events
-        </p>
-        <div className="flex items-center gap-1">
-          <PageBtn label="Previous" muted />
-          <PageBtn label="1" active />
-          <PageBtn label="2" />
-          <PageBtn label="3" />
-          <span className="px-1 text-xs text-text-secondary">…</span>
-          <PageBtn label="85" />
-          <PageBtn label="Next" />
-        </div>
+      <footer className="mt-4 border-t border-border/40 pt-3">
+        <Pagination
+          page={paged.page}
+          pages={paged.pages}
+          from={paged.from}
+          to={paged.to}
+          total={paged.total}
+          onPageChange={setPage}
+        />
       </footer>
     </section>
-  );
-}
-
-function PageBtn({
-  label,
-  active,
-  muted,
-}: {
-  label: string;
-  active?: boolean;
-  muted?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      disabled
-      className={cn(
-        "rounded px-3 py-1.5 text-xs",
-        active && "bg-primary font-bold text-white",
-        muted && "bg-muted opacity-40",
-        !active && !muted && "bg-muted text-text-secondary"
-      )}
-    >
-      {label}
-    </button>
   );
 }
