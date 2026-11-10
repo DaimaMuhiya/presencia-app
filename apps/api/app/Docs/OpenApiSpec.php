@@ -32,6 +32,10 @@ MD,
     name: 'Authentification',
     description: 'Connexion, session, mot de passe oublié et demande d\'accès.',
 )]
+#[OA\Tag(
+    name: 'Comptes',
+    description: 'Création et gestion des comptes. Réservé au rôle super_admin.',
+)]
 #[OA\Security\Scheme\Http(
     component: 'bearerAuth',
     scheme: 'bearer',
@@ -315,6 +319,109 @@ MD,
             example: 'marie.dupont@example.com',
         )),
         new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', maxLength: 2000, nullable: true)),
+    ],
+)]
+#[OA\Schema(
+    component: 'UserCreateRequest',
+    type: 'object',
+    description: 'Le matricule et le mot de passe ne font pas partie de la requête. L\'API les produit.',
+    required: ['first_name', 'last_name', 'work_email'],
+    example: [
+        'first_name'         => 'Marie',
+        'last_name'          => 'Dupont',
+        'work_email'         => 'marie.dupont@example.com',
+        'phone'              => '+243800000000',
+        'role'               => 'employee',
+        'employment_status'  => 'active',
+        'job_title'          => 'Développeuse',
+        'joining_date'       => '2026-11-10',
+        'avatar_url'         => 'https://example.com/avatars/marie.png',
+        'push_enabled'       => true,
+        'email_enabled'      => true,
+    ],
+    properties: [
+        new OA\Property(property: 'first_name', schema: new OA\Schema(type: 'string', maxLength: 100, example: 'Marie')),
+        new OA\Property(property: 'last_name', schema: new OA\Schema(type: 'string', maxLength: 100, example: 'Dupont')),
+        new OA\Property(property: 'work_email', schema: new OA\Schema(type: 'string', format: 'email', maxLength: 150, example: 'marie.dupont@example.com')),
+        new OA\Property(property: 'phone', schema: new OA\Schema(type: 'string', maxLength: 30, nullable: true, example: '+243800000000')),
+        new OA\Property(property: 'role', schema: new OA\Schema(type: 'string', enum: ['super_admin', 'admin', 'employee'], example: 'employee')),
+        new OA\Property(property: 'employment_status', schema: new OA\Schema(type: 'string', enum: ['active', 'inactive', 'suspended'], example: 'active')),
+        new OA\Property(property: 'job_title', schema: new OA\Schema(type: 'string', maxLength: 100, nullable: true, example: 'Développeuse')),
+        new OA\Property(property: 'joining_date', schema: new OA\Schema(type: 'string', format: 'date', nullable: true, example: '2026-11-10')),
+        new OA\Property(property: 'avatar_url', schema: new OA\Schema(
+            type: 'string',
+            maxLength: 2048,
+            nullable: true,
+            example: 'https://example.com/avatars/marie.png',
+            description: 'Facultatif. null si le compte n\'a pas d\'avatar.',
+        )),
+        new OA\Property(property: 'push_enabled', schema: new OA\Schema(
+            type: 'boolean',
+            nullable: true,
+            example: true,
+            description: 'Facultatif. null ou absent active les notifications push.',
+        )),
+        new OA\Property(property: 'email_enabled', schema: new OA\Schema(
+            type: 'boolean',
+            nullable: true,
+            example: true,
+            description: 'Facultatif. null ou absent active les notifications email.',
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'UserUpdateRequest',
+    type: 'object',
+    description: 'Tous les champs sont facultatifs. Seuls ceux qui sont envoyés sont modifiés.',
+    properties: [
+        new OA\Property(property: 'first_name', schema: new OA\Schema(type: 'string', maxLength: 100)),
+        new OA\Property(property: 'last_name', schema: new OA\Schema(type: 'string', maxLength: 100)),
+        new OA\Property(property: 'work_email', schema: new OA\Schema(type: 'string', format: 'email', maxLength: 150)),
+        new OA\Property(property: 'password', schema: new OA\Schema(type: 'string', format: 'password', minLength: 8, maxLength: 255, description: 'Facultatif. Remplace le mot de passe et ferme les sessions.')),
+        new OA\Property(property: 'password_confirmation', schema: new OA\Schema(type: 'string', format: 'password')),
+        new OA\Property(property: 'phone', schema: new OA\Schema(type: 'string', maxLength: 30, nullable: true)),
+        new OA\Property(property: 'role', schema: new OA\Schema(type: 'string', enum: ['super_admin', 'admin', 'employee'])),
+        new OA\Property(property: 'employment_status', schema: new OA\Schema(type: 'string', enum: ['active', 'inactive', 'suspended'])),
+        new OA\Property(property: 'job_title', schema: new OA\Schema(type: 'string', maxLength: 100, nullable: true)),
+        new OA\Property(property: 'joining_date', schema: new OA\Schema(type: 'string', format: 'date', nullable: true)),
+        new OA\Property(property: 'avatar_url', schema: new OA\Schema(type: 'string', maxLength: 2048, nullable: true)),
+        new OA\Property(property: 'push_enabled', schema: new OA\Schema(type: 'boolean', nullable: true)),
+        new OA\Property(property: 'email_enabled', schema: new OA\Schema(type: 'boolean', nullable: true)),
+    ],
+)]
+#[OA\Schema(
+    component: 'UserItemResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Compte chargé.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['user'],
+            properties: [
+                new OA\Property(property: 'user', schema: new OA\Schema(ref: '#/components/schemas/User')),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'UserListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Comptes chargés.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['users'],
+            properties: [
+                new OA\Property(property: 'users', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/User'),
+                )),
+            ],
+        )),
     ],
 )]
 class OpenApiSpec

@@ -32,4 +32,13 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('me', 'AuthController::me', ['filter' => 'auth']);
         $routes->put('password', 'AuthController::changePassword', ['filter' => 'auth']);
     });
+    
+    // Routes protégés par le role super_admin.
+    $routes->group('super-admin', ['filter' => 'auth:super_admin'], static function ($routes) {
+        $routes->get('users', 'UsersController::index');
+        $routes->get('users/(:segment)', 'UsersController::show');
+        $routes->post('users', 'UsersController::create');
+        $routes->put('users/(:segment)', 'UsersController::update');
+        $routes->delete('users/(:segment)', 'UsersController::delete');
+    });
 });
