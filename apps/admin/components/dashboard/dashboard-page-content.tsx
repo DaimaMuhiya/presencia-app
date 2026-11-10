@@ -1,7 +1,6 @@
 "use client";
 
 import { DashboardAlerts } from "@/components/dashboard/dashboard-alerts";
-import { DashboardDepartments } from "@/components/dashboard/dashboard-departments";
 import { DashboardKpiCard } from "@/components/dashboard/dashboard-kpi-card";
 import { DashboardLiveTable } from "@/components/dashboard/dashboard-live-table";
 import { DashboardTrendPanel } from "@/components/dashboard/dashboard-trend-panel";
@@ -35,11 +34,7 @@ export function DashboardPageContent() {
         <DashboardWorkforcePanel />
       </section>
 
-      <section
-        className="grid gap-5 lg:grid-cols-5"
-        aria-label="Départements et alertes"
-      >
-        <DashboardDepartments />
+      <section aria-label="Alertes opérationnelles">
         <DashboardAlerts />
       </section>
 

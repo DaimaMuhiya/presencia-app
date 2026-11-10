@@ -27,18 +27,6 @@ export type ArrivalWindow = {
   tone: "blue" | "indigo" | "amber";
 };
 
-export type DepartmentRow = {
-  rank: number;
-  name: string;
-  meta: string;
-  rate: number;
-  rateLabel: string;
-  badge?: string;
-  badgeTone?: "green" | "neutral" | "amber";
-  rankTone: "green" | "blue" | "amber";
-  barColor: string;
-};
-
 export type OperationalAlert = {
   id: string;
   title: string;

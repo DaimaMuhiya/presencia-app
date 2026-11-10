@@ -1,7 +1,6 @@
 import type {
   ArrivalWindow,
   DashboardKpi,
-  DepartmentRow,
   LiveAttendanceRow,
   OperationalAlert,
   TrendPoint,
@@ -98,61 +97,6 @@ export const DEMO_ARRIVAL_WINDOWS: ArrivalWindow[] = [
   { label: "08:00 – 08:30", percent: "43.6%", width: 43.6, tone: "blue" },
   { label: "08:30 – 09:00", percent: "51.7%", width: 51.7, tone: "indigo" },
   { label: "After 09:00", percent: "4.7%", width: 4.7, tone: "amber" },
-];
-
-export const DEMO_DEPARTMENTS: DepartmentRow[] = [
-  {
-    rank: 1,
-    name: "Engineering",
-    meta: "128 employees • Terminal A",
-    rate: 94.4,
-    rateLabel: "Above target",
-    badge: "+2.1%",
-    rankTone: "green",
-    barColor: "#059669",
-  },
-  {
-    rank: 2,
-    name: "Product & Design",
-    meta: "64 employees • Floor 3",
-    rate: 91.7,
-    rateLabel: "Stable",
-    badge: "On track",
-    rankTone: "green",
-    barColor: "#10B981",
-  },
-  {
-    rank: 3,
-    name: "Legal & Finance",
-    meta: "42 employees • Wing B",
-    rate: 88.9,
-    rateLabel: "Near 90% target",
-    badge: "Monitor",
-    rankTone: "blue",
-    barColor: "#00236F",
-  },
-  {
-    rank: 4,
-    name: "Operations & Logistics",
-    meta: "186 employees • Terminal B",
-    rate: 84.1,
-    rateLabel: "Congestion risk",
-    badge: "Attention",
-    badgeTone: "amber",
-    rankTone: "amber",
-    barColor: "#F59E0B",
-  },
-  {
-    rank: 5,
-    name: "Support & Client Success",
-    meta: "60 employees • Remote hybrid",
-    rate: 82.2,
-    rateLabel: "Below target",
-    badge: "Review",
-    badgeTone: "amber",
-    rankTone: "amber",
-    barColor: "#FBBF24",
-  },
 ];
 
 export const DEMO_ALERTS: OperationalAlert[] = [
