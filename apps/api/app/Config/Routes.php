@@ -7,6 +7,9 @@ use CodeIgniter\Router\RouteCollection;
  */
 $routes->get('/', 'Home::index');
 
+// Documentation interactive. Le contrat est public/openapi.json.
+$routes->get('api/docs', 'Swagger::index');
+
 // Le navigateur envoie OPTIONS avant un appel depuis un autre port.
 // Le filtre cors répond à cette prévérification.
 $routes->options('api/v1/(:any)', static function () {
@@ -28,5 +31,14 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         // Routes protégées par le filtre auth (jeton Bearer).
         $routes->get('me', 'AuthController::me', ['filter' => 'auth']);
         $routes->put('password', 'AuthController::changePassword', ['filter' => 'auth']);
+    });
+    
+    // Routes protégés par le role super_admin.
+    $routes->group('super-admin', ['filter' => 'auth:super_admin'], static function ($routes) {
+        $routes->get('users', 'UsersController::index');
+        $routes->get('users/(:segment)', 'UsersController::show');
+        $routes->post('users', 'UsersController::create');
+        $routes->put('users/(:segment)', 'UsersController::update');
+        $routes->delete('users/(:segment)', 'UsersController::delete');
     });
 });

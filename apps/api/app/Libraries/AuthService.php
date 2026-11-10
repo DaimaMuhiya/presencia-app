@@ -135,7 +135,6 @@ class AuthService
         ]);
 
         return AuthResult::success('Un code de connexion a été envoyé par email.', [
-            'id'           => $user['id'],
             'challenge_id' => $challengeId,
         ]);
     }

@@ -3,6 +3,7 @@
 namespace App\Controllers\Api\V1;
 
 use Config\Validation;
+use OpenApi\Spec as OA;
 
 /**
  * Connexion, session, mot de passe oublié et demande d'accès.
@@ -12,6 +13,24 @@ use Config\Validation;
  */
 class AuthController extends ApiController
 {
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/login',
+        operationId: 'login',
+        tags: ['Authentification'],
+        summary: 'Démarrer la connexion',
+        description: 'Vérifie l\'email et le mot de passe, puis envoie un code à six chiffres. Aucun jeton n\'est émis à cette étape. Cinq tentatives sont autorisées par adresse IP et par email, sur 15 minutes.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/LoginRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Code envoyé.', content: new OA\Schema(ref: '#/components/schemas/LoginChallengeResponse')),
+            new OA\Response(response: 401, description: 'Email ou mot de passe incorrect.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Compte suspendu ou inactif.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Saisie incomplète ou invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 429, description: 'Trop de tentatives.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function login()
     {
         $input = $this->input();
@@ -31,6 +50,23 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/refresh',
+        operationId: 'refreshSession',
+        tags: ['Authentification'],
+        summary: 'Renouveler la session',
+        description: 'Échange un jeton de renouvellement contre une nouvelle paire. L\'ancien jeton est consommé. S\'il est présenté une seconde fois, toutes les sessions de la personne sont fermées.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/RefreshRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Nouvelle paire de jetons.', content: new OA\Schema(ref: '#/components/schemas/SessionResponse')),
+            new OA\Response(response: 401, description: 'Jeton inconnu, déjà utilisé ou expiré.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Le compte ne peut plus se connecter.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Jeton de renouvellement absent ou trop court.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function refresh()
     {
         $input = $this->input();
@@ -48,6 +84,28 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/logout',
+        operationId: 'logout',
+        tags: ['Authentification'],
+        summary: 'Fermer la session',
+        description: 'Révoque le jeton d\'accès présenté dans `Authorization: Bearer`, le jeton de renouvellement du corps, ou les deux. La réponse reste un succès même si les jetons sont déjà périmés.',
+        parameters: [
+            new OA\Parameter\Header(
+                name: 'Authorization',
+                required: false,
+                description: 'Facultatif. Forme attendue : `Bearer {jeton d\'accès}`.',
+                schema: new OA\Schema(type: 'string'),
+            ),
+        ],
+        requestBody: new OA\RequestBody(
+            required: false,
+            content: new OA\Schema(ref: '#/components/schemas/LogoutRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Déconnexion acceptée.', content: new OA\Schema(ref: '#/components/schemas/MessageResponse')),
+        ],
+    )]
     public function logout()
     {
         $input  = $this->input();
@@ -64,6 +122,18 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Get(
+        path: '/api/v1/auth/me',
+        operationId: 'currentUser',
+        tags: ['Authentification'],
+        summary: 'Profil de la session',
+        description: 'Réservé à un compte connecté et actif.',
+        security: [new OA\Security\Requirement(scheme: 'bearerAuth')],
+        responses: [
+            new OA\Response(response: 200, description: 'Profil public.', content: new OA\Schema(ref: '#/components/schemas/MeResponse')),
+            new OA\Response(response: 401, description: 'Jeton manquant, expiré ou révoqué.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function me()
     {
         $user = service('auth')->currentUser();
@@ -77,6 +147,22 @@ class AuthController extends ApiController
         ]);
     }
 
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/forgot-password',
+        operationId: 'forgotPassword',
+        tags: ['Authentification'],
+        summary: 'Demander un code de réinitialisation',
+        description: 'La réponse est la même que l\'email corresponde à un compte actif ou non. Trois demandes sont autorisées par adresse IP et par email, sur une heure. Le code expire au bout de 15 minutes.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/ForgotPasswordRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Demande acceptée, sans indiquer si le compte existe.', content: new OA\Schema(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 422, description: 'Email absent ou invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 429, description: 'Trop de demandes.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function forgotPassword()
     {
         $input = $this->input();
@@ -94,6 +180,24 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/verify-otp',
+        operationId: 'verifyLoginOtp',
+        tags: ['Authentification'],
+        summary: 'Terminer la connexion',
+        description: 'Vérifie le défi ouvert par `login` et le code reçu par email, puis émet les jetons. Le défi et le code doivent être ceux de la même session PHP. Cinq codes incorrects, ou un défi expiré, annulent la tentative.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/VerifyOtpRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Session ouverte.', content: new OA\Schema(ref: '#/components/schemas/SessionResponse')),
+            new OA\Response(response: 401, description: 'Défi invalide, expiré ou différent de celui en cours.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Le compte ne peut plus se connecter.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Code incorrect ou saisie invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 429, description: 'Trop de codes incorrects.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function verifyOtp()
     {
         $input = $this->input();
@@ -112,6 +216,21 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/verify-reset-code',
+        operationId: 'verifyResetCode',
+        tags: ['Authentification'],
+        summary: 'Vérifier le code de réinitialisation',
+        description: 'Contrôle le code sans le consommer. `reset-password` le consomme ensuite.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/VerifyResetCodeRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Code encore valable.', content: new OA\Schema(ref: '#/components/schemas/ResetCodeResponse')),
+            new OA\Response(response: 422, description: 'Code invalide, expiré, ou saisie invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function verifyResetCode()
     {
         $input = $this->input();
@@ -128,6 +247,22 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/reset-password',
+        operationId: 'resetPassword',
+        tags: ['Authentification'],
+        summary: 'Choisir un nouveau mot de passe',
+        description: 'Consomme le code de réinitialisation, met à jour le mot de passe et ferme toutes les sessions.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/ResetPasswordRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Mot de passe mis à jour.', content: new OA\Schema(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 403, description: 'Le compte ne peut plus être réinitialisé.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Code invalide, mots de passe différents, ou saisie invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function resetPassword()
     {
         $input = $this->input();
@@ -151,6 +286,23 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Put(
+        path: '/api/v1/auth/password',
+        operationId: 'changePassword',
+        tags: ['Authentification'],
+        summary: 'Changer le mot de passe',
+        description: 'Réservé à un compte connecté. Les autres sessions sont fermées. La réponse contient une nouvelle paire de jetons pour l\'appareil en cours.',
+        security: [new OA\Security\Requirement(scheme: 'bearerAuth')],
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/ChangePasswordRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Mot de passe modifié et session renouvelée.', content: new OA\Schema(ref: '#/components/schemas/TokensResponse')),
+            new OA\Response(response: 401, description: 'Jeton manquant, expiré ou révoqué.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Mot de passe actuel incorrect, confirmation différente, ou saisie invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function changePassword()
     {
         $user = service('auth')->currentUser();
@@ -180,6 +332,21 @@ class AuthController extends ApiController
         return $this->fromResult($result);
     }
 
+    #[OA\Operation\Post(
+        path: '/api/v1/auth/request-access',
+        operationId: 'requestAccess',
+        tags: ['Authentification'],
+        summary: 'Demander un accès',
+        description: 'Enregistre la demande si l\'email n\'est pas déjà celui d\'un compte ou d\'une demande en attente. La réponse ne dit pas lequel des deux cas s\'applique.',
+        requestBody: new OA\RequestBody(
+            required: true,
+            content: new OA\Schema(ref: '#/components/schemas/RequestAccessRequest'),
+        ),
+        responses: [
+            new OA\Response(response: 200, description: 'Demande acceptée, sans préciser si elle a été enregistrée.', content: new OA\Schema(ref: '#/components/schemas/MessageResponse')),
+            new OA\Response(response: 422, description: 'Saisie incomplète ou invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
     public function requestAccess()
     {
         $input = $this->input();
