@@ -32,7 +32,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-30 bg-surface/90 backdrop-blur-md",
+        "fixed top-0 right-0 left-0 z-30 bg-surface/95 backdrop-blur-md lg:left-64",
         ADMIN_TOP_BAR_HEIGHT
       )}
     >
