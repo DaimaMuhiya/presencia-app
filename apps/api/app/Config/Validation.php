@@ -82,6 +82,25 @@ class Validation extends BaseConfig
         ],
     ];
 
+    public array $authVerifyLogin = [
+        'challenge_id' => [
+            'label'  => 'Défi de connexion',
+            'rules'  => 'required|min_length[20]|max_length[128]',
+            'errors' => [
+                'required'   => 'Le défi de connexion est obligatoire.',
+                'min_length' => 'Le défi de connexion n\'est pas valide.',
+            ],
+        ],
+        'code' => [
+            'label'  => 'Code',
+            'rules'  => 'required|regex_match[/^\d{6}$/]',
+            'errors' => [
+                'required'    => 'Le code est obligatoire.',
+                'regex_match' => 'Le code doit contenir 6 chiffres.',
+            ],
+        ],
+    ];
+
     public array $authVerifyCode = [
         'email' => [
             'label'  => 'Adresse email',

@@ -20,12 +20,23 @@ use Throwable;
  * - la bibliothèque Email pour le code de réinitialisation
  * - les modèles, la validation et les filtres autour de cette classe
  *
+ * La connexion se fait en deux temps. Le mot de passe correct ne donne
+ * pas encore de jeton : il ouvre un défi gardé dans la session pendant
+ * dix minutes, et un code part par email. Le jeton n'est émis qu'une
+ * fois ce code vérifié.
+ *
  * Un jeton d'accès dure peu de temps. Le jeton de renouvellement
  * permet d'en obtenir un nouveau sans redemander le mot de passe.
  * Les deux ne sont stockés que sous forme d'empreinte.
  */
 class AuthService
 {
+    /**
+     * Clé de session du défi de connexion.
+     * Rien n'est écrit en base : si la session disparaît, le défi aussi.
+     */
+    private const LOGIN_CHALLENGE = 'login_challenge';
+
     private UserModel $users;
     private AuthTokenModel $tokens;
     private AccessRequestModel $accessRequests;
@@ -116,18 +127,84 @@ class AuthService
             return AuthResult::failure($message, 403);
         }
 
-        $session = $this->issueSession((string) $user['id'], $remember);
+        $challengeId = $this->startLoginChallenge($user, $remember);
+
+        $this->audit->record((string) $user['id'], 'auth', 'login_challenged', 'users', (string) $user['id'], [
+            'ip'         => $ip,
+            'user_agent' => $userAgent,
+        ]);
+
+        return AuthResult::success('Un code de connexion a été envoyé par email.', [
+            'id'           => $user['id'],
+            'challenge_id' => $challengeId,
+        ]);
+    }
+
+    /**
+     * Termine la connexion. Le défi et le code doivent aller ensemble.
+     * Cinq codes incorrects, ou un défi expiré, annulent la tentative.
+     */
+    public function verifyLoginOtp(string $challengeId, string $code, string $ip, string $userAgent): AuthResult
+    {
+        $session   = session();
+        $challenge = $session->get(self::LOGIN_CHALLENGE);
+
+        if (! is_array($challenge) || $this->challengeExpired($challenge)) {
+            $session->remove(self::LOGIN_CHALLENGE);
+
+            return AuthResult::failure('Ce défi est invalide ou expiré. Reconnectez-vous.', 401);
+        }
+
+        // Un mauvais identifiant ne compte pas comme un essai de code,
+        // et ne détruit pas le défi en cours.
+        if (! $this->sameSecret((string) ($challenge['challenge_id'] ?? ''), $challengeId)) {
+            return AuthResult::failure('Ce défi est invalide ou expiré. Reconnectez-vous.', 401);
+        }
+
+        $attempts = (int) ($challenge['attempts'] ?? 0);
+
+        if ($attempts >= $this->config()->loginOtpMaxAttempts) {
+            $session->remove(self::LOGIN_CHALLENGE);
+
+            return AuthResult::failure('Trop de tentatives. Reconnectez-vous.', 429);
+        }
+
+        $expected = TokenHash::forResetCode((string) $challenge['email'], $code);
+
+        if (! hash_equals((string) $challenge['otp_hash'], $expected)) {
+            $attempts++;
+            $challenge['attempts'] = $attempts;
+
+            if ($attempts >= $this->config()->loginOtpMaxAttempts) {
+                $session->remove(self::LOGIN_CHALLENGE);
+
+                return AuthResult::failure('Trop de tentatives. Reconnectez-vous.', 429);
+            }
+
+            $session->set(self::LOGIN_CHALLENGE, $challenge);
+
+            return AuthResult::failure('Code invalide.', 422);
+        }
+
+        $session->remove(self::LOGIN_CHALLENGE);
+
+        $user = $this->users->find($challenge['user_id']);
+
+        if (! is_array($user) || $user['employment_status'] !== 'active') {
+            return AuthResult::failure('Ce compte ne peut plus se connecter.', 403);
+        }
+
+        $tokens = $this->issueSession((string) $user['id'], (bool) ($challenge['remember'] ?? false));
 
         $this->audit->record((string) $user['id'], 'auth', 'login', 'users', (string) $user['id'], [
-            'ip'       => $ip,
+            'ip'         => $ip,
             'user_agent' => $userAgent,
-            'remember' => $remember,
         ]);
 
         return AuthResult::success('Connexion réussie.', [
             'user'         => UserModel::toPublic($user),
-            'token'        => $session['access'],
-            'refreshToken' => $session['refresh'],
+            'token'        => $tokens['access'],
+            'refreshToken' => $tokens['refresh'],
             'expiresIn'    => $this->config()->accessTokenTtl,
         ]);
     }
@@ -386,6 +463,53 @@ class AuthService
     }
 
     /**
+     * Ouvre un défi de connexion dans la session PHP.
+     * Le code en clair n'y est pas écrit : seulement son empreinte.
+     * Un nouveau défi remplace le précédent.
+     *
+     * @param array<string, mixed> $user
+     */
+    private function startLoginChallenge(array $user, bool $remember): string
+    {
+        $code        = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $challengeId = bin2hex(random_bytes(32));
+        $email       = (string) $user['work_email'];
+
+        $session = session();
+        $session->regenerate(true);
+        $session->set(self::LOGIN_CHALLENGE, [
+            'challenge_id' => $challengeId,
+            'user_id'      => (string) $user['id'],
+            'email'        => $email,
+            'otp_hash'     => TokenHash::forResetCode($email, $code),
+            'expires_at'   => time() + $this->config()->loginChallengeTtl,
+            'attempts'     => 0,
+            'remember'     => $remember,
+        ]);
+
+        $this->sendLoginCode($email, (string) $user['first_name'], $code);
+
+        return $challengeId;
+    }
+
+    /**
+     * @param array<string, mixed> $challenge
+     */
+    private function challengeExpired(array $challenge): bool
+    {
+        return (int) ($challenge['expires_at'] ?? 0) < time();
+    }
+
+    /**
+     * Compare deux secrets sans dépendre de leur longueur.
+     * hash_equals refuse deux chaînes de tailles différentes.
+     */
+    private function sameSecret(string $known, string $given): bool
+    {
+        return hash_equals(hash('sha256', $known), hash('sha256', $given));
+    }
+
+    /**
      * @return array{access: string, refresh: string}
      */
     private function issueSession(string $userId, bool $remember): array
@@ -439,6 +563,34 @@ class AuthService
         }
 
         return ($expiresAt - $createdAt) > $this->config()->refreshTokenTtl;
+    }
+
+    private function sendLoginCode(string $email, string $firstName, string $code): void
+    {
+        // En développement, le mail part rarement. Le code est alors écrit
+        // dans le journal pour pouvoir tester. Il n'est jamais renvoyé dans l'API.
+        if (ENVIRONMENT === 'development') {
+            log_message('notice', 'Code de connexion pour {email} : {code}', [
+                'email' => $email,
+                'code'  => $code,
+            ]);
+        }
+
+        try {
+            $mail = service('email');
+            $mail->setTo($email);
+            $mail->setSubject('Code de connexion Presencia');
+            $mail->setMessage(view('emails/login_otp', [
+                'firstName' => $firstName,
+                'code'      => $code,
+                'minutes'   => (int) ($this->config()->loginChallengeTtl / 60),
+            ]));
+            $mail->send();
+        } catch (Throwable $exception) {
+            log_message('error', 'Envoi du code de connexion impossible : {message}', [
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 
     private function sendResetCode(string $email, string $firstName, string $code): void

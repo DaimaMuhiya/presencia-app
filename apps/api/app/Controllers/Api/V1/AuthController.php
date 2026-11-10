@@ -98,6 +98,24 @@ class AuthController extends ApiController
     {
         $input = $this->input();
 
+        if (! $this->validateData($input, config(Validation::class)->authVerifyLogin)) {
+            return $this->invalidInput();
+        }
+
+        $result = service('auth')->verifyLoginOtp(
+            (string) $input['challenge_id'],
+            (string) $input['code'],
+            $this->request->getIPAddress(),
+            $this->userAgent(),
+        );
+
+        return $this->fromResult($result);
+    }
+
+    public function verifyResetCode()
+    {
+        $input = $this->input();
+
         if (! $this->validateData($input, config(Validation::class)->authVerifyCode)) {
             return $this->invalidInput();
         }
@@ -211,6 +229,10 @@ class AuthController extends ApiController
 
         if (! isset($data['code']) && isset($data['otp'])) {
             $data['code'] = $data['otp'];
+        }
+
+        if (! isset($data['challenge_id']) && isset($data['challengeId'])) {
+            $data['challenge_id'] = $data['challengeId'];
         }
 
         if (! isset($data['full_name']) && isset($data['fullName'])) {

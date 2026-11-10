@@ -21,6 +21,7 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->post('logout', 'AuthController::logout');
         $routes->post('forgot-password', 'AuthController::forgotPassword');
         $routes->post('verify-otp', 'AuthController::verifyOtp');
+        $routes->post('verify-reset-code', 'AuthController::verifyResetCode');
         $routes->post('reset-password', 'AuthController::resetPassword');
         $routes->post('request-access', 'AuthController::requestAccess');
 

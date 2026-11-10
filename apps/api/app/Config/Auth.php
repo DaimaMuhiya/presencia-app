@@ -34,6 +34,18 @@ class Auth extends BaseConfig
     public int $passwordResetTtl = 15 * MINUTE;
 
     /**
+     * Durée du défi de connexion et du code envoyé par email.
+     * Passé ce délai, il faut ressaisir le mot de passe.
+     */
+    public int $loginChallengeTtl = 10 * MINUTE;
+
+    /**
+     * Nombre de codes incorrects acceptés pour un même défi.
+     * Au-delà, le défi est annulé.
+     */
+    public int $loginOtpMaxAttempts = 5;
+
+    /**
      * Nombre de tentatives de connexion autorisées pour une même adresse IP et un même email.
      */
     public int $loginAttempts = 5;
