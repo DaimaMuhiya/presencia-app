@@ -43,6 +43,9 @@
 # Mot de passe des comptes créés par php spark db:seed AuthSeeder
 # auth.seedPassword = '123456789*'
 
+# Durée du jeton d'accès Bearer (secondes). Défaut : 900 (15 minutes).
+# AUTH_ACCESS_TOKEN_TTL_SECONDS = 900
+
 # If you use MySQLi as tests, first update the values of Config\Database::$tests.
 # database.tests.hostname = localhost
 # database.tests.database = ci4_test

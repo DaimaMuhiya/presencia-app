@@ -8,7 +8,8 @@ use CodeIgniter\Config\BaseConfig;
  * Réglages de l'authentification.
  *
  * Les durées sont en secondes. MINUTE, HOUR et DAY sont des constantes
- * déjà fournies par CodeIgniter.
+ * déjà fournies par CodeIgniter. La durée du jeton d'accès se règle
+ * dans `.env` via `AUTH_ACCESS_TOKEN_TTL_SECONDS`.
  */
 class Auth extends BaseConfig
 {
@@ -17,6 +18,21 @@ class Auth extends BaseConfig
      * Courte : s'il est volé, il devient vite inutilisable.
      */
     public int $accessTokenTtl = 15 * MINUTE;
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $fromEnv = env('AUTH_ACCESS_TOKEN_TTL_SECONDS');
+        if ($fromEnv === null || $fromEnv === '') {
+            return;
+        }
+
+        $seconds = (int) $fromEnv;
+        if ($seconds > 0) {
+            $this->accessTokenTtl = $seconds;
+        }
+    }
 
     /**
      * Durée du jeton de renouvellement, sans la case « garder ma session ».

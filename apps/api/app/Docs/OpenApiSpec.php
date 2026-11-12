@@ -19,7 +19,7 @@ Les réponses sont en JSON : `success`, `message`, et `data` quand l'action prod
 
 La connexion se fait en deux temps. Un mot de passe correct n'émet pas encore de jeton : il ouvre un défi de dix minutes et envoie un code à six chiffres par email. Les jetons ne sont créés qu'après `POST /api/v1/auth/verify-otp`.
 
-Le jeton d'accès dure 15 minutes. Le jeton de renouvellement dure 12 heures, ou 30 jours si « garder ma session » a été demandé. Les deux ne sont stockés que sous forme d'empreinte.
+La durée du jeton d'accès est réglée par `AUTH_ACCESS_TOKEN_TTL_SECONDS` dans `.env` (défaut 900 s, soit 15 minutes). Le jeton de renouvellement dure 12 heures, ou 30 jours si « garder ma session » a été demandé. Les deux ne sont stockés que sous forme d'empreinte.
 
 Certains champs acceptent aussi un alias (`rememberMe`, `refresh_token`, `challengeId`, `otp`, `fullName`, `workEmail`, `currentPassword`, `newPassword`, `passwordConfirmation`). La documentation décrit le nom attendu par la validation.
 MD,
