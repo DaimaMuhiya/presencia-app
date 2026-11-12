@@ -18,6 +18,7 @@ use CodeIgniter\Config\BaseService;
  * see the core Services file at system/Config/Services.php.
  */
 use App\Libraries\AuthService;
+use App\Libraries\QrRotationService;
 
 class Services extends BaseService
 {
@@ -32,5 +33,14 @@ class Services extends BaseService
         }
 
         return new AuthService();
+    }
+
+    public static function qrRotation(bool $getShared = true): QrRotationService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('qrRotation');
+        }
+
+        return new QrRotationService();
     }
 }

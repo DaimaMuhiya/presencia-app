@@ -17,6 +17,9 @@ $routes->options('api/v1/(:any)', static function () {
 });
 
 $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static function ($routes) {
+    // QR dynamiques : affichage ouvert.
+    $routes->get('qr/current', 'QrController::current');
+
     $routes->group('auth', static function ($routes) {
         // Routes ouvertes : pas encore de session.
         $routes->post('login', 'AuthController::login');
@@ -27,12 +30,15 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->post('verify-reset-code', 'AuthController::verifyResetCode');
         $routes->post('reset-password', 'AuthController::resetPassword');
         $routes->post('request-access', 'AuthController::requestAccess');
-
-        // Routes protégées par le filtre auth (jeton Bearer).
-        $routes->get('me', 'AuthController::me', ['filter' => 'auth']);
-        $routes->put('password', 'AuthController::changePassword', ['filter' => 'auth']);
     });
-    
+
+    // Jeton Bearer requis.
+    $routes->group('', ['filter' => 'auth'], static function ($routes) {
+        $routes->get('auth/me', 'AuthController::me'); // récupères les infos de l'utilisateur connecté.
+        $routes->put('auth/password', 'AuthController::changePassword'); // change le mot de passe.
+        $routes->post('qr/consume', 'QrController::consume'); // consomme le QR.
+    });
+
     // Routes protégés par le role super_admin.
     $routes->group('super-admin', ['filter' => 'auth:super_admin'], static function ($routes) {
         $routes->get('users', 'UsersController::index');
