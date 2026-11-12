@@ -390,6 +390,19 @@ MD,
     ],
 )]
 #[OA\Schema(
+    component: 'UserStatusRequest',
+    type: 'object',
+    required: ['employment_status'],
+    properties: [
+        new OA\Property(property: 'employment_status', schema: new OA\Schema(
+            type: 'string',
+            enum: ['active', 'inactive', 'suspended'],
+            example: 'suspended',
+            description: 'Alias acceptés : employmentStatus, workStatus.',
+        )),
+    ],
+)]
+#[OA\Schema(
     component: 'UserItemResponse',
     type: 'object',
     required: ['success', 'message', 'data'],

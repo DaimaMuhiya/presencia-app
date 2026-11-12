@@ -887,6 +887,95 @@
                     }
                 ]
             }
+        },
+        "/api/v1/super-admin/users/{id}/status": {
+            "put": {
+                "tags": [
+                    "Comptes"
+                ],
+                "summary": "Modifier le statut d'un compte",
+                "description": "Passe le compte à active, inactive ou suspended. Un statut autre qu'actif ferme ses sessions. Le dernier super administrateur actif ne peut pas être désactivé. Alias acceptés : employmentStatus, workStatus.",
+                "operationId": "updateUserStatus",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identifiant du compte.",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserStatusRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Statut mis à jour.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserItemResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Action interdite pour ce compte.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Compte introuvable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Statut absent ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
         }
     },
     "components": {
@@ -1647,6 +1736,25 @@
                         ]
                     }
                 }
+            },
+            "UserStatusRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "employment_status": {
+                        "type": "string",
+                        "description": "Alias acceptés : employmentStatus, workStatus.",
+                        "enum": [
+                            "active",
+                            "inactive",
+                            "suspended"
+                        ],
+                        "example": "suspended"
+                    }
+                },
+                "required": [
+                    "employment_status"
+                ]
             },
             "UserItemResponse": {
                 "type": "object",

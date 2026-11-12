@@ -285,4 +285,15 @@ class Validation extends BaseConfig
 
         return $rules;
     }
+
+    public array $userStatus = [
+        'employment_status' => [
+            'label'  => 'Statut',
+            'rules'  => 'required|in_list[active,inactive,suspended]',
+            'errors' => [
+                'required' => 'Le statut est obligatoire.',
+                'in_list'  => 'Le statut doit être active, inactive ou suspended.',
+            ],
+        ],
+    ];
 }

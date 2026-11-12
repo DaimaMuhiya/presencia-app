@@ -36,8 +36,9 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     // Routes protégés par le role super_admin.
     $routes->group('super-admin', ['filter' => 'auth:super_admin'], static function ($routes) {
         $routes->get('users', 'UsersController::index');
-        $routes->get('users/(:segment)', 'UsersController::show');
         $routes->post('users', 'UsersController::create');
+        $routes->put('users/(:segment)/status', 'UsersController::updateStatus');
+        $routes->get('users/(:segment)', 'UsersController::show');
         $routes->put('users/(:segment)', 'UsersController::update');
         $routes->delete('users/(:segment)', 'UsersController::delete');
     });

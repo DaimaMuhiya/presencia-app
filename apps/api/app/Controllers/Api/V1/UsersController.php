@@ -292,14 +292,70 @@ class UsersController extends ApiController
         return $this->ok('Compte supprimé.');
     }
 
-    /**
-     * Génère un mot de passe aléatoire.
-     *
-     * @return string
-     */
-    private function generatePassword()
+    #[OA\Operation\Put(
+        path: '/api/v1/super-admin/users/{id}/status',
+        operationId: 'updateUserStatus',
+        tags: ['Comptes'],
+        summary: 'Modifier le statut d\'un compte',
+        description: 'Passe le compte à active, inactive ou suspended. Un statut autre qu\'actif ferme ses sessions. Le dernier super administrateur actif ne peut pas être désactivé. Alias acceptés : employmentStatus, workStatus.',
+        security: [new OA\Security\Requirement(scheme: 'bearerAuth')],
+        parameters: [
+            new OA\Parameter\Path(name: 'id', description: 'Identifiant du compte.', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        ],
+        requestBody: new OA\RequestBody(required: true, content: new OA\Schema(ref: '#/components/schemas/UserStatusRequest')),
+        responses: [
+            new OA\Response(response: 200, description: 'Statut mis à jour.', content: new OA\Schema(ref: '#/components/schemas/UserItemResponse')),
+            new OA\Response(response: 401, description: 'Jeton manquant, expiré ou révoqué.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 403, description: 'Action interdite pour ce compte.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 404, description: 'Compte introuvable.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+            new OA\Response(response: 422, description: 'Statut absent ou invalide.', content: new OA\Schema(ref: '#/components/schemas/ErrorResponse')),
+        ],
+    )]
+    public function updateStatus($id = null)
     {
-        //
+        if ($denied = $this->denied()) {
+            return $denied;
+        }
+
+        $id   = (string) $id;
+        $user = $this->findUser($id);
+
+        if ($user === null) {
+            return $this->notFound();
+        }
+
+        $input = $this->input();
+
+        if (! $this->validateData($input, config(Validation::class)->userStatus)) {
+            return $this->invalidInput();
+        }
+
+        $status = (string) $input['employment_status'];
+
+        if ($this->removesLastSuperAdmin($user, ['employment_status' => $status], false)) {
+            return $this->failMessage('Il doit rester au moins un super administrateur actif.', 403);
+        }
+
+        if ((string) ($user['employment_status'] ?? '') !== $status) {
+            if (model(UserModel::class)->update($id, ['employment_status' => $status]) === false) {
+                return $this->failMessage('Le statut n\'a pas pu être modifié.', 500);
+            }
+
+            if ($status !== 'active') {
+                model(AuthTokenModel::class)->revokeAllForUser($id);
+            }
+
+            $this->audit('user_status_changed', $id, [
+                'from' => $user['employment_status'] ?? null,
+                'to'   => $status,
+            ]);
+        }
+
+        $updated = model(UserModel::class)->find($id);
+
+        return $this->ok('Statut mis à jour.', [
+            'user' => UserModel::toPublic(is_array($updated) ? $updated : $user),
+        ]);
     }
 
     /**
