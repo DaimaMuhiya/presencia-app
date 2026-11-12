@@ -36,7 +36,9 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
     $routes->group('', ['filter' => 'auth'], static function ($routes) {
         $routes->get('auth/me', 'AuthController::me'); // récupères les infos de l'utilisateur connecté.
         $routes->put('auth/password', 'AuthController::changePassword'); // change le mot de passe.
-        $routes->post('qr/consume', 'QrController::consume'); // consomme le QR.
+        $routes->post('qr/consume', 'QrController::consume'); // consomme le QR (test / legacy).
+        $routes->post('attendance/punch', 'AttendanceController::punch'); // pointage QR.
+        $routes->get('attendance/me', 'AttendanceController::myAttendances'); // mes présences.
     });
 
     // Routes protégés par le role super_admin.
@@ -52,5 +54,8 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->post('schedules', 'SchedulesController::create');
         $routes->put('schedules/(:segment)', 'SchedulesController::update');
         $routes->delete('schedules/(:segment)', 'SchedulesController::delete');
+
+        $routes->get('attendances', 'AttendancesController::index');
+        $routes->get('scan-logs', 'AttendancesController::scanLogs');
     });
 });

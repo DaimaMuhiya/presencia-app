@@ -17,6 +17,7 @@ use CodeIgniter\Config\BaseService;
  * method format you should use for your service methods. For more examples,
  * see the core Services file at system/Config/Services.php.
  */
+use App\Libraries\AttendancePunchService;
 use App\Libraries\AuthService;
 use App\Libraries\QrRotationService;
 
@@ -42,5 +43,14 @@ class Services extends BaseService
         }
 
         return new QrRotationService();
+    }
+
+    public static function attendancePunch(bool $getShared = true): AttendancePunchService
+    {
+        if ($getShared) {
+            return static::getSharedInstance('attendancePunch');
+        }
+
+        return new AttendancePunchService();
     }
 }

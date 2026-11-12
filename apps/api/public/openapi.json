@@ -13,6 +13,288 @@
         }
     ],
     "paths": {
+        "/api/v1/attendance/punch": {
+            "post": {
+                "tags": [
+                    "Présence"
+                ],
+                "summary": "Pointer (scan QR)",
+                "description": "Utilisateur connecté (employé ou super admin), compte actif. 1er scan du jour : arrivée. 2e : départ. Consomme le QR et en émet un nouveau. Pas de GPS.",
+                "operationId": "attendancePunch",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/AttendancePunchRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Pointage enregistré.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AttendancePunchResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "QR ou pointage invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Rôle non autorisé ou compte inactif.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "503": {
+                        "description": "Horaire entreprise non configuré.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/attendance/me": {
+            "get": {
+                "tags": [
+                    "Présence"
+                ],
+                "summary": "Mes présences",
+                "description": "Historique du compte connecté. Paramètres optionnels from et to (AAAA-MM-JJ).",
+                "operationId": "myAttendances",
+                "parameters": [
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Liste des présences.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AttendanceListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant ou invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/super-admin/attendances": {
+            "get": {
+                "tags": [
+                    "Présence"
+                ],
+                "summary": "Lister les présences",
+                "operationId": "listAttendances",
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "description": "Jour (AAAA-MM-JJ).",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "status",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "enum": [
+                                "on_time",
+                                "late",
+                                "absent",
+                                "exception"
+                            ]
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Présences.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AttendanceListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Accès refusé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/super-admin/scan-logs": {
+            "get": {
+                "tags": [
+                    "Présence"
+                ],
+                "summary": "Journal des scans",
+                "operationId": "listScanLogs",
+                "parameters": [
+                    {
+                        "name": "date",
+                        "in": "query",
+                        "description": "Jour (AAAA-MM-JJ, filtre sur scanned_at).",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "user_id",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    },
+                    {
+                        "name": "is_success",
+                        "in": "query",
+                        "schema": {
+                            "type": "boolean"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Scans.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScanLogListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Accès refusé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/auth/login": {
             "post": {
                 "tags": [
@@ -2449,6 +2731,232 @@
                     "message",
                     "data"
                 ]
+            },
+            "Attendance": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "user_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "schedules_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "attendance_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "arrival_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "departure_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "on_time",
+                            "late",
+                            "absent",
+                            "exception"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "user_id",
+                    "attendance_date",
+                    "status"
+                ]
+            },
+            "ScanLog": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "attendance_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "user_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "qr_token_id": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "uuid"
+                    },
+                    "method": {
+                        "type": "string",
+                        "example": "qr_scan"
+                    },
+                    "scanned_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "is_success": {
+                        "type": "boolean"
+                    },
+                    "failure_reason": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    }
+                },
+                "required": [
+                    "id",
+                    "user_id",
+                    "method",
+                    "scanned_at",
+                    "is_success"
+                ]
+            },
+            "AttendancePunchRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "hash_id": {
+                        "type": "string",
+                        "description": "Valeur lue dans le QR. Alias : hashId."
+                    }
+                },
+                "required": [
+                    "hash_id"
+                ]
+            },
+            "AttendancePunchResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Arrivée enregistrée."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "punch_type": {
+                                "type": "string",
+                                "enum": [
+                                    "arrival",
+                                    "departure"
+                                ]
+                            },
+                            "attendance": {
+                                "$ref": "#/components/schemas/Attendance"
+                            },
+                            "qr": {
+                                "$ref": "#/components/schemas/QrToken",
+                                "description": "QR affichable après rotation."
+                            }
+                        },
+                        "required": [
+                            "punch_type",
+                            "attendance",
+                            "qr"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "AttendanceListResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "attendances": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Attendance"
+                                }
+                            }
+                        },
+                        "required": [
+                            "attendances"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "ScanLogListResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "scan_logs": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ScanLog"
+                                }
+                            }
+                        },
+                        "required": [
+                            "scan_logs"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
             }
         },
         "securitySchemes": {
@@ -2475,6 +2983,10 @@
         {
             "name": "Horaires",
             "description": "Modèles d'horaires de travail : début, fin et tolérance avant retard. Réservé au super_admin."
+        },
+        {
+            "name": "Présence",
+            "description": "Pointage QR : arrivée / départ par jour. Horaire entreprise : premier horaire en base (mono-organisation)."
         }
     ]
 }

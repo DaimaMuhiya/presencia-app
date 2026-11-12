@@ -129,6 +129,16 @@ class QrRotationService
     }
 
     /**
+     * Émet un nouveau jeton (sans transaction dédiée).
+     *
+     * @return array<string, mixed>
+     */
+    public function issueNextToken(): array
+    {
+        return $this->issueNewToken();
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     private function findActiveToken(): ?array

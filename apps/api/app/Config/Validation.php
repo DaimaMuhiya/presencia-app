@@ -328,6 +328,16 @@ class Validation extends BaseConfig
         ],
     ];
 
+    public array $attendancePunch = [
+        'hash_id' => [
+            'label'  => 'QR',
+            'rules'  => 'required|max_length[100]',
+            'errors' => [
+                'required' => 'Le QR scanné est obligatoire.',
+            ],
+        ],
+    ];
+
     /**
      * @return array<string, array<string, mixed>>
      */

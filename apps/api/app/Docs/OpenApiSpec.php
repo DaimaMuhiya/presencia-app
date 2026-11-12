@@ -44,6 +44,10 @@ MD,
     name: 'Horaires',
     description: 'Modèles d\'horaires de travail : début, fin et tolérance avant retard. Réservé au super_admin.',
 )]
+#[OA\Tag(
+    name: 'Présence',
+    description: 'Pointage QR : arrivée / départ par jour. Horaire entreprise : premier horaire en base (mono-organisation).',
+)]
 #[OA\Security\Scheme\Http(
     component: 'bearerAuth',
     scheme: 'bearer',
@@ -559,6 +563,99 @@ MD,
                 new OA\Property(property: 'schedules', schema: new OA\Schema(
                     type: 'array',
                     items: new OA\Schema(ref: '#/components/schemas/Schedule'),
+                )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'Attendance',
+    type: 'object',
+    required: ['id', 'user_id', 'attendance_date', 'status'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'user_id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'schedules_id', schema: new OA\Schema(type: 'string', format: 'uuid', nullable: true)),
+        new OA\Property(property: 'attendance_date', schema: new OA\Schema(type: 'string', format: 'date')),
+        new OA\Property(property: 'arrival_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true)),
+        new OA\Property(property: 'departure_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true)),
+        new OA\Property(property: 'status', schema: new OA\Schema(type: 'string', enum: ['on_time', 'late', 'absent', 'exception'])),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScanLog',
+    type: 'object',
+    required: ['id', 'user_id', 'method', 'scanned_at', 'is_success'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'attendance_id', schema: new OA\Schema(type: 'string', format: 'uuid', nullable: true)),
+        new OA\Property(property: 'user_id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'qr_token_id', schema: new OA\Schema(type: 'string', format: 'uuid', nullable: true)),
+        new OA\Property(property: 'method', schema: new OA\Schema(type: 'string', example: 'qr_scan')),
+        new OA\Property(property: 'scanned_at', schema: new OA\Schema(type: 'string', format: 'date-time')),
+        new OA\Property(property: 'is_success', schema: new OA\Schema(type: 'boolean')),
+        new OA\Property(property: 'failure_reason', schema: new OA\Schema(type: 'string', nullable: true)),
+    ],
+)]
+#[OA\Schema(
+    component: 'AttendancePunchRequest',
+    type: 'object',
+    required: ['hash_id'],
+    properties: [
+        new OA\Property(property: 'hash_id', schema: new OA\Schema(type: 'string', description: 'Valeur lue dans le QR. Alias : hashId.')),
+    ],
+)]
+#[OA\Schema(
+    component: 'AttendancePunchResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Arrivée enregistrée.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['punch_type', 'attendance', 'qr'],
+            properties: [
+                new OA\Property(property: 'punch_type', schema: new OA\Schema(type: 'string', enum: ['arrival', 'departure'])),
+                new OA\Property(property: 'attendance', schema: new OA\Schema(ref: '#/components/schemas/Attendance')),
+                new OA\Property(property: 'qr', schema: new OA\Schema(ref: '#/components/schemas/QrToken', description: 'QR affichable après rotation.')),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'AttendanceListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['attendances'],
+            properties: [
+                new OA\Property(property: 'attendances', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/Attendance'),
+                )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScanLogListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['scan_logs'],
+            properties: [
+                new OA\Property(property: 'scan_logs', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/ScanLog'),
                 )),
             ],
         )),
