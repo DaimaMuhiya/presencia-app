@@ -19,7 +19,7 @@ Les réponses sont en JSON : `success`, `message`, et `data` quand l'action prod
 
 La connexion se fait en deux temps. Un mot de passe correct n'émet pas encore de jeton : il ouvre un défi de dix minutes et envoie un code à six chiffres par email. Les jetons ne sont créés qu'après `POST /api/v1/auth/verify-otp`.
 
-Le jeton d'accès dure 15 minutes. Le jeton de renouvellement dure 12 heures, ou 30 jours si « garder ma session » a été demandé. Les deux ne sont stockés que sous forme d'empreinte.
+La durée du jeton d'accès est réglée par `AUTH_ACCESS_TOKEN_TTL_SECONDS` dans `.env` (défaut 900 s, soit 15 minutes). Le jeton de renouvellement dure 12 heures, ou 30 jours si « garder ma session » a été demandé. Les deux ne sont stockés que sous forme d'empreinte.
 
 Certains champs acceptent aussi un alias (`rememberMe`, `refresh_token`, `challengeId`, `otp`, `fullName`, `workEmail`, `currentPassword`, `newPassword`, `passwordConfirmation`). La documentation décrit le nom attendu par la validation.
 MD,
@@ -35,6 +35,18 @@ MD,
 #[OA\Tag(
     name: 'Comptes',
     description: 'Création et gestion des comptes. Réservé au rôle super_admin.',
+)]
+#[OA\Tag(
+    name: 'QR dynamique',
+    description: 'Jetons QR rotatifs pour le pointage. `hash_id` est la valeur à encoder dans l\'image QR. Durée de vie : variable d\'environnement `QR_TOKEN_TTL_SECONDS` (défaut 15 s).',
+)]
+#[OA\Tag(
+    name: 'Horaires',
+    description: 'Modèles d\'horaires de travail : début, fin et tolérance avant retard. Réservé au super_admin.',
+)]
+#[OA\Tag(
+    name: 'Présence',
+    description: 'Pointage QR : arrivée / départ par jour. Horaire entreprise : premier horaire en base (mono-organisation).',
 )]
 #[OA\Security\Scheme\Http(
     component: 'bearerAuth',
@@ -390,6 +402,19 @@ MD,
     ],
 )]
 #[OA\Schema(
+    component: 'UserStatusRequest',
+    type: 'object',
+    required: ['employment_status'],
+    properties: [
+        new OA\Property(property: 'employment_status', schema: new OA\Schema(
+            type: 'string',
+            enum: ['active', 'inactive', 'suspended'],
+            example: 'suspended',
+            description: 'Alias acceptés : employmentStatus, workStatus.',
+        )),
+    ],
+)]
+#[OA\Schema(
     component: 'UserItemResponse',
     type: 'object',
     required: ['success', 'message', 'data'],
@@ -419,6 +444,218 @@ MD,
                 new OA\Property(property: 'users', schema: new OA\Schema(
                     type: 'array',
                     items: new OA\Schema(ref: '#/components/schemas/User'),
+                )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrToken',
+    type: 'object',
+    description: 'Jeton QR unique. Le front affiche le QR en encodant uniquement `hash_id` (texte brut, ex. `0x4f8a…`).',
+    required: ['id', 'hash_id', 'issued_at', 'expires_at', 'refresh_seconds'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'hash_id', schema: new OA\Schema(type: 'string', example: '0x4f8a1b2c3d4e5f6789012345678901234567890ab')),
+        new OA\Property(property: 'issued_at', schema: new OA\Schema(type: 'string', format: 'date-time', example: '2026-11-12 14:00:00')),
+        new OA\Property(property: 'expires_at', schema: new OA\Schema(type: 'string', format: 'date-time', example: '2026-11-12 14:00:15')),
+        new OA\Property(property: 'consumed_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true, example: null)),
+        new OA\Property(property: 'refresh_seconds', schema: new OA\Schema(type: 'integer', example: 15, description: 'Miroir de `QR_REFRESH_SECONDS` côté serveur.')),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrCurrentResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'QR actuel.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['qr'],
+            properties: [
+                new OA\Property(property: 'qr', schema: new OA\Schema(ref: '#/components/schemas/QrToken')),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrConsumeRequest',
+    type: 'object',
+    required: ['hash_id'],
+    properties: [
+        new OA\Property(property: 'hash_id', schema: new OA\Schema(
+            type: 'string',
+            maxLength: 100,
+            example: '0x4f8a1b2c3d4e5f6789012345678901234567890ab',
+            description: 'Valeur lue depuis le QR. Alias accepté : `hashId`.',
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrConsumeResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'QR consommé.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['consumed', 'replacement'],
+            properties: [
+                new OA\Property(property: 'consumed', schema: new OA\Schema(ref: '#/components/schemas/QrToken')),
+                new OA\Property(property: 'replacement', schema: new OA\Schema(ref: '#/components/schemas/QrToken', nullable: true)),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'Schedule',
+    type: 'object',
+    required: ['id', 'start_time', 'end_time', 'grace_minutes'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'start_time', schema: new OA\Schema(type: 'string', format: 'time', example: '08:00:00', description: 'Heure de début (HH:MM:SS). Alias renvoyé : startTime.')),
+        new OA\Property(property: 'end_time', schema: new OA\Schema(type: 'string', format: 'time', example: '16:00:00', description: 'Heure de fin. Alias : endTime.')),
+        new OA\Property(property: 'startTime', schema: new OA\Schema(type: 'string', format: 'time', example: '08:00:00')),
+        new OA\Property(property: 'endTime', schema: new OA\Schema(type: 'string', format: 'time', example: '16:00:00')),
+        new OA\Property(property: 'grace_minutes', schema: new OA\Schema(type: 'integer', example: 10, description: 'Minutes de tolérance après l\'heure de début. Alias : graceMinutes.')),
+        new OA\Property(property: 'graceMinutes', schema: new OA\Schema(type: 'integer', example: 10)),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScheduleWriteRequest',
+    type: 'object',
+    required: ['start_time', 'end_time'],
+    properties: [
+        new OA\Property(property: 'start_time', schema: new OA\Schema(type: 'string', example: '08:00', description: 'HH:MM ou HH:MM:SS. Alias : startTime.')),
+        new OA\Property(property: 'end_time', schema: new OA\Schema(type: 'string', example: '16:00', description: 'Doit être après start_time. Alias : endTime.')),
+        new OA\Property(property: 'grace_minutes', schema: new OA\Schema(type: 'integer', minimum: 0, maximum: 480, example: 10, description: 'Défaut : 0. Alias : graceMinutes.')),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScheduleItemResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Horaire créé.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['schedule'],
+            properties: [
+                new OA\Property(property: 'schedule', schema: new OA\Schema(ref: '#/components/schemas/Schedule')),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScheduleListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Horaires chargés.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['schedules'],
+            properties: [
+                new OA\Property(property: 'schedules', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/Schedule'),
+                )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'Attendance',
+    type: 'object',
+    required: ['id', 'user_id', 'attendance_date', 'status'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'user_id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'schedules_id', schema: new OA\Schema(type: 'string', format: 'uuid', nullable: true)),
+        new OA\Property(property: 'attendance_date', schema: new OA\Schema(type: 'string', format: 'date')),
+        new OA\Property(property: 'arrival_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true)),
+        new OA\Property(property: 'departure_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true)),
+        new OA\Property(property: 'status', schema: new OA\Schema(type: 'string', enum: ['on_time', 'late', 'absent', 'exception'])),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScanLog',
+    type: 'object',
+    required: ['id', 'user_id', 'method', 'scanned_at', 'is_success'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'attendance_id', schema: new OA\Schema(type: 'string', format: 'uuid', nullable: true)),
+        new OA\Property(property: 'user_id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'qr_token_id', schema: new OA\Schema(type: 'string', format: 'uuid', nullable: true)),
+        new OA\Property(property: 'method', schema: new OA\Schema(type: 'string', example: 'qr_scan')),
+        new OA\Property(property: 'scanned_at', schema: new OA\Schema(type: 'string', format: 'date-time')),
+        new OA\Property(property: 'is_success', schema: new OA\Schema(type: 'boolean')),
+        new OA\Property(property: 'failure_reason', schema: new OA\Schema(type: 'string', nullable: true)),
+    ],
+)]
+#[OA\Schema(
+    component: 'AttendancePunchRequest',
+    type: 'object',
+    required: ['hash_id'],
+    properties: [
+        new OA\Property(property: 'hash_id', schema: new OA\Schema(type: 'string', description: 'Valeur lue dans le QR. Alias : hashId.')),
+    ],
+)]
+#[OA\Schema(
+    component: 'AttendancePunchResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Arrivée enregistrée.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['punch_type', 'attendance', 'qr'],
+            properties: [
+                new OA\Property(property: 'punch_type', schema: new OA\Schema(type: 'string', enum: ['arrival', 'departure'])),
+                new OA\Property(property: 'attendance', schema: new OA\Schema(ref: '#/components/schemas/Attendance')),
+                new OA\Property(property: 'qr', schema: new OA\Schema(ref: '#/components/schemas/QrToken', description: 'QR affichable après rotation.')),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'AttendanceListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['attendances'],
+            properties: [
+                new OA\Property(property: 'attendances', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/Attendance'),
+                )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScanLogListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['scan_logs'],
+            properties: [
+                new OA\Property(property: 'scan_logs', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/ScanLog'),
                 )),
             ],
         )),

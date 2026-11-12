@@ -285,4 +285,72 @@ class Validation extends BaseConfig
 
         return $rules;
     }
+
+    public array $userStatus = [
+        'employment_status' => [
+            'label'  => 'Statut',
+            'rules'  => 'required|in_list[active,inactive,suspended]',
+            'errors' => [
+                'required' => 'Le statut est obligatoire.',
+                'in_list'  => 'Le statut doit être active, inactive ou suspended.',
+            ],
+        ],
+    ];
+
+    // --------------------------------------------------------------------
+    // Horaires (schedules)
+    // --------------------------------------------------------------------
+
+    public array $scheduleCreate = [
+        'start_time' => [
+            'label'  => 'Heure de début',
+            'rules'  => 'required|regex_match[/\A([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?\z/]',
+            'errors' => [
+                'required'    => 'L\'heure de début est obligatoire.',
+                'regex_match' => 'L\'heure de début doit être au format HH:MM ou HH:MM:SS.',
+            ],
+        ],
+        'end_time' => [
+            'label'  => 'Heure de fin',
+            'rules'  => 'required|regex_match[/\A([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?\z/]',
+            'errors' => [
+                'required'    => 'L\'heure de fin est obligatoire.',
+                'regex_match' => 'L\'heure de fin doit être au format HH:MM ou HH:MM:SS.',
+            ],
+        ],
+        'grace_minutes' => [
+            'label'  => 'Minutes de tolérance',
+            'rules'  => 'permit_empty|is_natural|less_than_equal_to[480]',
+            'errors' => [
+                'is_natural'        => 'Les minutes de tolérance doivent être un entier positif ou zéro.',
+                'less_than_equal_to' => 'Les minutes de tolérance ne peuvent pas dépasser 480.',
+            ],
+        ],
+    ];
+
+    public array $attendancePunch = [
+        'hash_id' => [
+            'label'  => 'QR',
+            'rules'  => 'required|max_length[100]',
+            'errors' => [
+                'required' => 'Le QR scanné est obligatoire.',
+            ],
+        ],
+    ];
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function scheduleUpdate(): array
+    {
+        $rules = $this->scheduleCreate;
+
+        $rules['start_time']['rules'] = 'permit_empty|regex_match[/\A([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?\z/]';
+        $rules['end_time']['rules']   = 'permit_empty|regex_match[/\A([01]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?\z/]';
+
+        unset($rules['start_time']['errors']['required']);
+        unset($rules['end_time']['errors']['required']);
+
+        return $rules;
+    }
 }
