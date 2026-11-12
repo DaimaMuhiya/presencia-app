@@ -4,6 +4,7 @@ namespace App\Controllers\Api\V1;
 
 use App\Models\AttendanceModel;
 use App\Models\ScanLogModel;
+use App\Support\AttendanceListFilters;
 use OpenApi\Spec as OA;
 
 /**
@@ -18,7 +19,11 @@ class AttendancesController extends ApiController
         summary: 'Lister les présences',
         security: [new OA\Security\Requirement(scheme: 'bearerAuth')],
         parameters: [
-            new OA\Parameter\Query(name: 'date', description: 'Jour (AAAA-MM-JJ).', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter\Query(name: 'date', description: 'Un jour (AAAA-MM-JJ). Ignoré si from/to, month ou week est fourni.', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter\Query(name: 'month', description: 'Mois calendaire (AAAA-MM).', schema: new OA\Schema(type: 'string', example: '2026-11')),
+            new OA\Parameter\Query(name: 'week', description: 'Semaine ISO (AAAA-Www, ex. 2026-W46).', schema: new OA\Schema(type: 'string', example: '2026-W46')),
+            new OA\Parameter\Query(name: 'from', description: 'Début d\'intervalle (AAAA-MM-JJ).', schema: new OA\Schema(type: 'string', format: 'date')),
+            new OA\Parameter\Query(name: 'to', description: 'Fin d\'intervalle (AAAA-MM-JJ).', schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter\Query(name: 'user_id', schema: new OA\Schema(type: 'string', format: 'uuid')),
             new OA\Parameter\Query(name: 'status', schema: new OA\Schema(type: 'string', enum: ['on_time', 'late', 'absent', 'exception'])),
         ],
@@ -34,12 +39,13 @@ class AttendancesController extends ApiController
             return $denied;
         }
 
-        $model = model(AttendanceModel::class);
-
-        $date = trim((string) ($this->request->getGet('date') ?? ''));
-        if ($date !== '' && preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $date) === 1) {
-            $model->where('attendance_date', $date);
+        $range = AttendanceListFilters::resolve($this->request->getGet() ?? []);
+        if (isset($range['error'])) {
+            return $this->failMessage($range['error'], 422);
         }
+
+        $model = model(AttendanceModel::class);
+        AttendanceListFilters::applyToModel($model, $range);
 
         $userId = trim((string) ($this->request->getGet('user_id') ?? ''));
         if ($userId !== '') {
@@ -53,9 +59,17 @@ class AttendancesController extends ApiController
 
         $rows = $model->orderBy('attendance_date', 'DESC')->findAll();
 
-        return $this->ok('Présences chargées.', [
+        $data = [
             'attendances' => array_map(AttendanceModel::toPublic(...), $rows),
-        ]);
+        ];
+        if (($range['from'] ?? null) !== null || ($range['to'] ?? null) !== null) {
+            $data['period'] = [
+                'from' => $range['from'],
+                'to'   => $range['to'],
+            ];
+        }
+
+        return $this->ok('Présences chargées.', $data);
     }
 
     #[OA\Operation\Get(

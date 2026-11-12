@@ -3,6 +3,7 @@
 namespace App\Controllers\Api\V1;
 
 use App\Models\AttendanceModel;
+use App\Support\AttendanceListFilters;
 use Config\Services;
 use Config\Validation;
 use OpenApi\Spec as OA;
@@ -68,9 +69,11 @@ class AttendanceController extends ApiController
         operationId: 'myAttendances',
         tags: ['Présence'],
         summary: 'Mes présences',
-        description: 'Historique du compte connecté. Paramètres optionnels from et to (AAAA-MM-JJ).',
+        description: 'Historique du compte connecté. Filtres de période : month (AAAA-MM), week (AAAA-Www), ou from/to (AAAA-MM-JJ). Priorité : from/to, puis month, puis week.',
         security: [new OA\Security\Requirement(scheme: 'bearerAuth')],
         parameters: [
+            new OA\Parameter\Query(name: 'month', schema: new OA\Schema(type: 'string', example: '2026-11')),
+            new OA\Parameter\Query(name: 'week', schema: new OA\Schema(type: 'string', example: '2026-W46')),
             new OA\Parameter\Query(name: 'from', schema: new OA\Schema(type: 'string', format: 'date')),
             new OA\Parameter\Query(name: 'to', schema: new OA\Schema(type: 'string', format: 'date')),
         ],
@@ -86,22 +89,26 @@ class AttendanceController extends ApiController
             return $this->failMessage('Session invalide.', 401);
         }
 
-        $from = trim((string) ($this->request->getGet('from') ?? ''));
-        $to   = trim((string) ($this->request->getGet('to') ?? ''));
+        $range = AttendanceListFilters::resolve($this->request->getGet() ?? []);
+        if (isset($range['error'])) {
+            return $this->failMessage($range['error'], 422);
+        }
 
         $model = model(AttendanceModel::class)->where('user_id', (string) $user['id']);
-
-        if ($from !== '' && preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $from) === 1) {
-            $model->where('attendance_date >=', $from);
-        }
-        if ($to !== '' && preg_match('/\A\d{4}-\d{2}-\d{2}\z/', $to) === 1) {
-            $model->where('attendance_date <=', $to);
-        }
+        AttendanceListFilters::applyToModel($model, $range);
 
         $rows = $model->orderBy('attendance_date', 'DESC')->findAll();
 
-        return $this->ok('Présences chargées.', [
+        $data = [
             'attendances' => array_map(AttendanceModel::toPublic(...), $rows),
-        ]);
+        ];
+        if (($range['from'] ?? null) !== null || ($range['to'] ?? null) !== null) {
+            $data['period'] = [
+                'from' => $range['from'],
+                'to'   => $range['to'],
+            ];
+        }
+
+        return $this->ok('Présences chargées.', $data);
     }
 }

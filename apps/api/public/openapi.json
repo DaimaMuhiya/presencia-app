@@ -96,9 +96,25 @@
                     "Présence"
                 ],
                 "summary": "Mes présences",
-                "description": "Historique du compte connecté. Paramètres optionnels from et to (AAAA-MM-JJ).",
+                "description": "Historique du compte connecté. Filtres de période : month (AAAA-MM), week (AAAA-Www), ou from/to (AAAA-MM-JJ). Priorité : from/to, puis month, puis week.",
                 "operationId": "myAttendances",
                 "parameters": [
+                    {
+                        "name": "month",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "example": "2026-11"
+                        }
+                    },
+                    {
+                        "name": "week",
+                        "in": "query",
+                        "schema": {
+                            "type": "string",
+                            "example": "2026-W46"
+                        }
+                    },
                     {
                         "name": "from",
                         "in": "query",
@@ -156,7 +172,43 @@
                     {
                         "name": "date",
                         "in": "query",
-                        "description": "Jour (AAAA-MM-JJ).",
+                        "description": "Un jour (AAAA-MM-JJ). Ignoré si from/to, month ou week est fourni.",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "month",
+                        "in": "query",
+                        "description": "Mois calendaire (AAAA-MM).",
+                        "schema": {
+                            "type": "string",
+                            "example": "2026-11"
+                        }
+                    },
+                    {
+                        "name": "week",
+                        "in": "query",
+                        "description": "Semaine ISO (AAAA-Www, ex. 2026-W46).",
+                        "schema": {
+                            "type": "string",
+                            "example": "2026-W46"
+                        }
+                    },
+                    {
+                        "name": "from",
+                        "in": "query",
+                        "description": "Début d'intervalle (AAAA-MM-JJ).",
+                        "schema": {
+                            "type": "string",
+                            "format": "date"
+                        }
+                    },
+                    {
+                        "name": "to",
+                        "in": "query",
+                        "description": "Fin d'intervalle (AAAA-MM-JJ).",
                         "schema": {
                             "type": "string",
                             "format": "date"
