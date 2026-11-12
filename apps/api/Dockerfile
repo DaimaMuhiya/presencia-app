@@ -1,6 +1,6 @@
 # Image PHP/Apache pour déploiement Render (Web Service → runtime Docker).
 # Répertoire racine web : public/ (CodeIgniter 4).
-FROM php:8.2-apache
+FROM php:8.4-apache
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
