@@ -36,6 +36,10 @@ MD,
     name: 'Comptes',
     description: 'Création et gestion des comptes. Réservé au rôle super_admin.',
 )]
+#[OA\Tag(
+    name: 'QR dynamique',
+    description: 'Jetons QR rotatifs pour le pointage. `hash_id` est la valeur à encoder dans l\'image QR. Durée de vie : variable d\'environnement `QR_REFRESH_SECONDS` (défaut 15 s).',
+)]
 #[OA\Security\Scheme\Http(
     component: 'bearerAuth',
     scheme: 'bearer',
@@ -433,6 +437,66 @@ MD,
                     type: 'array',
                     items: new OA\Schema(ref: '#/components/schemas/User'),
                 )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrToken',
+    type: 'object',
+    description: 'Jeton QR unique. Le front affiche le QR en encodant uniquement `hash_id` (texte brut, ex. `0x4f8a…`).',
+    required: ['id', 'hash_id', 'issued_at', 'expires_at', 'refresh_seconds'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'hash_id', schema: new OA\Schema(type: 'string', example: '0x4f8a1b2c3d4e5f6789012345678901234567890ab')),
+        new OA\Property(property: 'issued_at', schema: new OA\Schema(type: 'string', format: 'date-time', example: '2026-11-12 14:00:00')),
+        new OA\Property(property: 'expires_at', schema: new OA\Schema(type: 'string', format: 'date-time', example: '2026-11-12 14:00:15')),
+        new OA\Property(property: 'consumed_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true, example: null)),
+        new OA\Property(property: 'refresh_seconds', schema: new OA\Schema(type: 'integer', example: 15, description: 'Miroir de `QR_REFRESH_SECONDS` côté serveur.')),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrCurrentResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'QR actuel.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['qr'],
+            properties: [
+                new OA\Property(property: 'qr', schema: new OA\Schema(ref: '#/components/schemas/QrToken')),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrConsumeRequest',
+    type: 'object',
+    required: ['hash_id'],
+    properties: [
+        new OA\Property(property: 'hash_id', schema: new OA\Schema(
+            type: 'string',
+            maxLength: 100,
+            example: '0x4f8a1b2c3d4e5f6789012345678901234567890ab',
+            description: 'Valeur lue depuis le QR. Alias accepté : `hashId`.',
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'QrConsumeResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'QR consommé.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['consumed', 'replacement'],
+            properties: [
+                new OA\Property(property: 'consumed', schema: new OA\Schema(ref: '#/components/schemas/QrToken')),
+                new OA\Property(property: 'replacement', schema: new OA\Schema(ref: '#/components/schemas/QrToken', nullable: true)),
             ],
         )),
     ],

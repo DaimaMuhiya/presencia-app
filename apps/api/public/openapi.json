@@ -544,6 +544,105 @@
                 }
             }
         },
+        "/api/v1/qr/current": {
+            "get": {
+                "tags": [
+                    "QR dynamique"
+                ],
+                "summary": "QR actuellement valide",
+                "description": "Retourne le jeton QR affichable. S'il n'existe pas encore de jeton actif (non consommé et non expiré), un nouveau est créé à la volée.\n\n**Affichage** : encoder `data.qr.hash_id` dans l'image QR (chaîne brute). Rafraîchir l'affichage quand `expires_at` est dépassé ou quand `hash_id` change.\n\n**Rotation planifiée** : commande `php spark qr:rotate` (cron, typiquement toutes les 15 s selon `QR_REFRESH_SECONDS`).",
+                "operationId": "qrCurrent",
+                "responses": {
+                    "200": {
+                        "description": "Jeton courant.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QrCurrentResponse"
+                                }
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Génération impossible.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/api/v1/qr/consume": {
+            "post": {
+                "tags": [
+                    "QR dynamique"
+                ],
+                "summary": "Consommer un QR après scan",
+                "description": "Marque le jeton comme utilisé (`consumed_at`) et émet immédiatement un nouveau jeton dans `data.replacement` pour l'écran suivant.\n\nLe QR doit être encore valide (non expiré, non déjà consommé). Alias de corps accepté : `hashId`.",
+                "operationId": "qrConsume",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/QrConsumeRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "QR consommé et remplacé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/QrConsumeResponse"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "QR inconnu, expiré ou déjà utilisé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "`hash_id` absent.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/super-admin/users": {
             "get": {
                 "tags": [
@@ -1818,6 +1917,136 @@
                     "message",
                     "data"
                 ]
+            },
+            "QrToken": {
+                "type": "object",
+                "description": "Jeton QR unique. Le front affiche le QR en encodant uniquement `hash_id` (texte brut, ex. `0x4f8a…`).",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "hash_id": {
+                        "type": "string",
+                        "example": "0x4f8a1b2c3d4e5f6789012345678901234567890ab"
+                    },
+                    "issued_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-11-12 14:00:00"
+                    },
+                    "expires_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "example": "2026-11-12 14:00:15"
+                    },
+                    "consumed_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time",
+                        "example": null
+                    },
+                    "refresh_seconds": {
+                        "type": "integer",
+                        "description": "Miroir de `QR_REFRESH_SECONDS` côté serveur.",
+                        "example": 15
+                    }
+                },
+                "required": [
+                    "id",
+                    "hash_id",
+                    "issued_at",
+                    "expires_at",
+                    "refresh_seconds"
+                ]
+            },
+            "QrCurrentResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "QR actuel."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "qr": {
+                                "$ref": "#/components/schemas/QrToken"
+                            }
+                        },
+                        "required": [
+                            "qr"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "QrConsumeRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "hash_id": {
+                        "type": "string",
+                        "description": "Valeur lue depuis le QR. Alias accepté : `hashId`.",
+                        "maxLength": 100,
+                        "example": "0x4f8a1b2c3d4e5f6789012345678901234567890ab"
+                    }
+                },
+                "required": [
+                    "hash_id"
+                ]
+            },
+            "QrConsumeResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "QR consommé."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "consumed": {
+                                "$ref": "#/components/schemas/QrToken"
+                            },
+                            "replacement": {
+                                "oneOf": [
+                                    {
+                                        "$ref": "#/components/schemas/QrToken"
+                                    },
+                                    {
+                                        "type": "null"
+                                    }
+                                ]
+                            }
+                        },
+                        "required": [
+                            "consumed",
+                            "replacement"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
             }
         },
         "securitySchemes": {
@@ -1836,6 +2065,10 @@
         {
             "name": "Comptes",
             "description": "Création et gestion des comptes. Réservé au rôle super_admin."
+        },
+        {
+            "name": "QR dynamique",
+            "description": "Jetons QR rotatifs pour le pointage. `hash_id` est la valeur à encoder dans l'image QR. Durée de vie : variable d'environnement `QR_REFRESH_SECONDS` (défaut 15 s)."
         }
     ]
 }
