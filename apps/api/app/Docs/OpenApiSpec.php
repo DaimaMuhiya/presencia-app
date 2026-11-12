@@ -38,7 +38,11 @@ MD,
 )]
 #[OA\Tag(
     name: 'QR dynamique',
-    description: 'Jetons QR rotatifs pour le pointage. `hash_id` est la valeur à encoder dans l\'image QR. Durée de vie : variable d\'environnement `QR_REFRESH_SECONDS` (défaut 15 s).',
+    description: 'Jetons QR rotatifs pour le pointage. `hash_id` est la valeur à encoder dans l\'image QR. Durée de vie : variable d\'environnement `QR_TOKEN_TTL_SECONDS` (défaut 15 s).',
+)]
+#[OA\Tag(
+    name: 'Horaires',
+    description: 'Modèles d\'horaires de travail : début, fin et tolérance avant retard. Réservé au super_admin.',
 )]
 #[OA\Security\Scheme\Http(
     component: 'bearerAuth',
@@ -497,6 +501,65 @@ MD,
             properties: [
                 new OA\Property(property: 'consumed', schema: new OA\Schema(ref: '#/components/schemas/QrToken')),
                 new OA\Property(property: 'replacement', schema: new OA\Schema(ref: '#/components/schemas/QrToken', nullable: true)),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'Schedule',
+    type: 'object',
+    required: ['id', 'start_time', 'end_time', 'grace_minutes'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'start_time', schema: new OA\Schema(type: 'string', format: 'time', example: '08:00:00', description: 'Heure de début (HH:MM:SS). Alias renvoyé : startTime.')),
+        new OA\Property(property: 'end_time', schema: new OA\Schema(type: 'string', format: 'time', example: '16:00:00', description: 'Heure de fin. Alias : endTime.')),
+        new OA\Property(property: 'startTime', schema: new OA\Schema(type: 'string', format: 'time', example: '08:00:00')),
+        new OA\Property(property: 'endTime', schema: new OA\Schema(type: 'string', format: 'time', example: '16:00:00')),
+        new OA\Property(property: 'grace_minutes', schema: new OA\Schema(type: 'integer', example: 10, description: 'Minutes de tolérance après l\'heure de début. Alias : graceMinutes.')),
+        new OA\Property(property: 'graceMinutes', schema: new OA\Schema(type: 'integer', example: 10)),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScheduleWriteRequest',
+    type: 'object',
+    required: ['start_time', 'end_time'],
+    properties: [
+        new OA\Property(property: 'start_time', schema: new OA\Schema(type: 'string', example: '08:00', description: 'HH:MM ou HH:MM:SS. Alias : startTime.')),
+        new OA\Property(property: 'end_time', schema: new OA\Schema(type: 'string', example: '16:00', description: 'Doit être après start_time. Alias : endTime.')),
+        new OA\Property(property: 'grace_minutes', schema: new OA\Schema(type: 'integer', minimum: 0, maximum: 480, example: 10, description: 'Défaut : 0. Alias : graceMinutes.')),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScheduleItemResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Horaire créé.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['schedule'],
+            properties: [
+                new OA\Property(property: 'schedule', schema: new OA\Schema(ref: '#/components/schemas/Schedule')),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'ScheduleListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string', example: 'Horaires chargés.')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['schedules'],
+            properties: [
+                new OA\Property(property: 'schedules', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/Schedule'),
+                )),
             ],
         )),
     ],

@@ -643,6 +643,271 @@
                 ]
             }
         },
+        "/api/v1/super-admin/schedules": {
+            "get": {
+                "tags": [
+                    "Horaires"
+                ],
+                "summary": "Lister les horaires",
+                "operationId": "listSchedules",
+                "responses": {
+                    "200": {
+                        "description": "Liste des horaires.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScheduleListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le rôle n'est pas super_admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Horaires"
+                ],
+                "summary": "Créer un horaire",
+                "description": "Alias acceptés : startTime, endTime, graceMinutes. L'heure de fin doit être après l'heure de début (même jour).",
+                "operationId": "createSchedule",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ScheduleWriteRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Horaire créé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScheduleItemResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le rôle n'est pas super_admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Saisie invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/super-admin/schedules/{id}": {
+            "put": {
+                "tags": [
+                    "Horaires"
+                ],
+                "summary": "Modifier un horaire",
+                "operationId": "updateSchedule",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identifiant de l'horaire.",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ScheduleWriteRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Horaire modifié.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ScheduleItemResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le rôle n'est pas super_admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Horaire introuvable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Saisie invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Horaires"
+                ],
+                "summary": "Supprimer un horaire",
+                "operationId": "deleteSchedule",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "description": "Identifiant de l'horaire.",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Horaire supprimé.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MessageResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton manquant, expiré ou révoqué.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le rôle n'est pas super_admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Horaire introuvable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/super-admin/users": {
             "get": {
                 "tags": [
@@ -2047,6 +2312,143 @@
                     "message",
                     "data"
                 ]
+            },
+            "Schedule": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "start_time": {
+                        "type": "string",
+                        "format": "time",
+                        "description": "Heure de début (HH:MM:SS). Alias renvoyé : startTime.",
+                        "example": "08:00:00"
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "format": "time",
+                        "description": "Heure de fin. Alias : endTime.",
+                        "example": "16:00:00"
+                    },
+                    "startTime": {
+                        "type": "string",
+                        "format": "time",
+                        "example": "08:00:00"
+                    },
+                    "endTime": {
+                        "type": "string",
+                        "format": "time",
+                        "example": "16:00:00"
+                    },
+                    "grace_minutes": {
+                        "type": "integer",
+                        "description": "Minutes de tolérance après l'heure de début. Alias : graceMinutes.",
+                        "example": 10
+                    },
+                    "graceMinutes": {
+                        "type": "integer",
+                        "example": 10
+                    }
+                },
+                "required": [
+                    "id",
+                    "start_time",
+                    "end_time",
+                    "grace_minutes"
+                ]
+            },
+            "ScheduleWriteRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "start_time": {
+                        "type": "string",
+                        "description": "HH:MM ou HH:MM:SS. Alias : startTime.",
+                        "example": "08:00"
+                    },
+                    "end_time": {
+                        "type": "string",
+                        "description": "Doit être après start_time. Alias : endTime.",
+                        "example": "16:00"
+                    },
+                    "grace_minutes": {
+                        "type": "integer",
+                        "description": "Défaut : 0. Alias : graceMinutes.",
+                        "minimum": 0,
+                        "maximum": 480,
+                        "example": 10
+                    }
+                },
+                "required": [
+                    "start_time",
+                    "end_time"
+                ]
+            },
+            "ScheduleItemResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Horaire créé."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "schedule": {
+                                "$ref": "#/components/schemas/Schedule"
+                            }
+                        },
+                        "required": [
+                            "schedule"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "ScheduleListResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string",
+                        "example": "Horaires chargés."
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "schedules": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Schedule"
+                                }
+                            }
+                        },
+                        "required": [
+                            "schedules"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
             }
         },
         "securitySchemes": {
@@ -2068,7 +2470,11 @@
         },
         {
             "name": "QR dynamique",
-            "description": "Jetons QR rotatifs pour le pointage. `hash_id` est la valeur à encoder dans l'image QR. Durée de vie : variable d'environnement `QR_REFRESH_SECONDS` (défaut 15 s)."
+            "description": "Jetons QR rotatifs pour le pointage. `hash_id` est la valeur à encoder dans l'image QR. Durée de vie : variable d'environnement `QR_TOKEN_TTL_SECONDS` (défaut 15 s)."
+        },
+        {
+            "name": "Horaires",
+            "description": "Modèles d'horaires de travail : début, fin et tolérance avant retard. Réservé au super_admin."
         }
     ]
 }

@@ -47,5 +47,10 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
         $routes->get('users/(:segment)', 'UsersController::show');
         $routes->put('users/(:segment)', 'UsersController::update');
         $routes->delete('users/(:segment)', 'UsersController::delete');
+
+        $routes->get('schedules', 'SchedulesController::index');
+        $routes->post('schedules', 'SchedulesController::create');
+        $routes->put('schedules/(:segment)', 'SchedulesController::update');
+        $routes->delete('schedules/(:segment)', 'SchedulesController::delete');
     });
 });
