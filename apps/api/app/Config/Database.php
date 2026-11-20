@@ -54,19 +54,6 @@ class Database extends Config
         ],
     ];
 
-    public function __construct()
-    {
-        parent::__construct();
-
-        $this->default['hostname'] = env('database.default.hostname', 'localhost');
-        $this->default['username'] = env('database.default.username', 'root');
-        $this->default['password'] = env('database.default.password', '');
-        $this->default['database'] = env('database.default.database', 'presencia');
-        $this->default['DBDriver'] = env('database.default.DBDriver', 'MySQLi');
-        $this->default['charset']  = env('database.default.charset', 'utf8mb4');
-        $this->default['port']     = (int) env('database.default.port', 4000);
-    }
-
     //    /**
     //     * Sample database connection for SQLite3.
     //     *
@@ -209,6 +196,14 @@ class Database extends Config
     public function __construct()
     {
         parent::__construct();
+
+        $this->default['hostname'] = env('database.default.hostname', 'localhost');
+        $this->default['username'] = env('database.default.username', 'root');
+        $this->default['password'] = env('database.default.password', '');
+        $this->default['database'] = env('database.default.database', 'presencia');
+        $this->default['DBDriver'] = env('database.default.DBDriver', 'MySQLi');
+        $this->default['charset']  = env('database.default.charset', 'utf8mb4');
+        $this->default['port']     = (int) env('database.default.port', 4000);
 
         // Ensure that we always set the database group to 'tests' if
         // we are currently running an automated test suite, so that
