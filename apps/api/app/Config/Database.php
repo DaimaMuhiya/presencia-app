@@ -37,7 +37,6 @@ class Database extends Config
         'charset'      => 'utf8mb4',
         'DBCollat'     => 'utf8mb4_general_ci',
         'swapPre'      => '',
-        // Le certificat du serveur est vérifié avec les autorités du système.
         'encrypt'      => [
             'ssl_ca'     => '/etc/ssl/cert.pem',
             'ssl_verify' => true,
@@ -45,7 +44,7 @@ class Database extends Config
         'compress'     => false,
         'strictOn'     => false,
         'failover'     => [],
-        'port'         => 3306,
+        'port'         => 4000,
         'numberNative' => false,
         'foundRows'    => false,
         'dateFormat'   => [
@@ -54,6 +53,19 @@ class Database extends Config
             'time'     => 'H:i:s',
         ],
     ];
+
+    public function __construct()
+    {
+        parent::__construct();
+
+        $this->default['hostname'] = env('database.default.hostname', 'localhost');
+        $this->default['username'] = env('database.default.username', 'root');
+        $this->default['password'] = env('database.default.password', '');
+        $this->default['database'] = env('database.default.database', 'presencia');
+        $this->default['DBDriver'] = env('database.default.DBDriver', 'MySQLi');
+        $this->default['charset']  = env('database.default.charset', 'utf8mb4');
+        $this->default['port']     = (int) env('database.default.port', 4000);
+    }
 
     //    /**
     //     * Sample database connection for SQLite3.
