@@ -1,0 +1,23 @@
+
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+
+    image: presencia-api:latest
+    container_name: presencia-api
+    restart: unless-stopped
+
+    environment:
+      PORT: "80"
+
+    ports:
+      - "8080:80"
+
+    volumes:
+      - ./apps/api/.env:/var/www/html/.env:ro
+      - presencia_writable:/var/www/html/writable
+
+volumes:
+  presencia_writable:
