@@ -48,6 +48,10 @@ MD,
     name: 'Présence',
     description: 'Pointage QR : arrivée / départ par jour. Horaire entreprise : premier horaire en base (mono-organisation).',
 )]
+#[OA\Tag(
+    name: 'Exports',
+    description: 'Export des présences sur une période. Réservé au super_admin. L\'API renvoie les lignes en JSON ; le front construit le fichier.',
+)]
 #[OA\Security\Scheme\Http(
     component: 'bearerAuth',
     scheme: 'bearer',
@@ -656,6 +660,84 @@ MD,
                 new OA\Property(property: 'scan_logs', schema: new OA\Schema(
                     type: 'array',
                     items: new OA\Schema(ref: '#/components/schemas/ScanLog'),
+                )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'Export',
+    type: 'object',
+    required: ['id', 'start_date', 'end_date', 'created_at'],
+    properties: [
+        new OA\Property(property: 'id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'start_date', schema: new OA\Schema(type: 'string', format: 'date')),
+        new OA\Property(property: 'end_date', schema: new OA\Schema(type: 'string', format: 'date')),
+        new OA\Property(property: 'status_filter', schema: new OA\Schema(type: 'string', enum: ['on_time', 'late', 'absent', 'exception'], nullable: true)),
+        new OA\Property(property: 'created_at', schema: new OA\Schema(type: 'string', format: 'date-time')),
+    ],
+)]
+#[OA\Schema(
+    component: 'ExportRow',
+    type: 'object',
+    required: ['attendance_id', 'attendance_date', 'status', 'user_id', 'first_name', 'last_name', 'work_email'],
+    properties: [
+        new OA\Property(property: 'attendance_id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'attendance_date', schema: new OA\Schema(type: 'string', format: 'date')),
+        new OA\Property(property: 'status', schema: new OA\Schema(type: 'string', enum: ['on_time', 'late', 'absent', 'exception'])),
+        new OA\Property(property: 'arrival_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true)),
+        new OA\Property(property: 'departure_at', schema: new OA\Schema(type: 'string', format: 'date-time', nullable: true)),
+        new OA\Property(property: 'user_id', schema: new OA\Schema(type: 'string', format: 'uuid')),
+        new OA\Property(property: 'employee_code', schema: new OA\Schema(type: 'string', nullable: true)),
+        new OA\Property(property: 'first_name', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'last_name', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'work_email', schema: new OA\Schema(type: 'string', format: 'email')),
+    ],
+)]
+#[OA\Schema(
+    component: 'ExportWriteRequest',
+    type: 'object',
+    required: ['start_date', 'end_date'],
+    properties: [
+        new OA\Property(property: 'start_date', schema: new OA\Schema(type: 'string', format: 'date', description: 'Alias : startDate.')),
+        new OA\Property(property: 'end_date', schema: new OA\Schema(type: 'string', format: 'date', description: 'Alias : endDate.')),
+        new OA\Property(property: 'status_filter', schema: new OA\Schema(type: 'string', enum: ['on_time', 'late', 'absent', 'exception'], nullable: true, description: 'Alias : statusFilter. Absent = tous les statuts.')),
+    ],
+)]
+#[OA\Schema(
+    component: 'ExportListResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['exports'],
+            properties: [
+                new OA\Property(property: 'exports', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/Export'),
+                )),
+            ],
+        )),
+    ],
+)]
+#[OA\Schema(
+    component: 'ExportDataResponse',
+    type: 'object',
+    required: ['success', 'message', 'data'],
+    properties: [
+        new OA\Property(property: 'success', schema: new OA\Schema(type: 'boolean', example: true)),
+        new OA\Property(property: 'message', schema: new OA\Schema(type: 'string')),
+        new OA\Property(property: 'data', schema: new OA\Schema(
+            type: 'object',
+            required: ['export', 'rows'],
+            properties: [
+                new OA\Property(property: 'export', schema: new OA\Schema(ref: '#/components/schemas/Export')),
+                new OA\Property(property: 'rows', schema: new OA\Schema(
+                    type: 'array',
+                    items: new OA\Schema(ref: '#/components/schemas/ExportRow'),
                 )),
             ],
         )),

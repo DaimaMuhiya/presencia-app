@@ -57,5 +57,9 @@ $routes->group('api/v1', ['namespace' => 'App\Controllers\Api\V1'], static funct
 
         $routes->get('attendances', 'AttendancesController::index');
         $routes->get('scan-logs', 'AttendancesController::scanLogs');
+
+        $routes->get('exports', 'ExportsController::index');
+        $routes->post('exports', 'ExportsController::create');
+        $routes->get('exports/(:segment)', 'ExportsController::show');
     });
 });

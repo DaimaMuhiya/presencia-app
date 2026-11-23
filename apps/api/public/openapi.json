@@ -878,6 +878,185 @@
                 }
             }
         },
+        "/api/v1/super-admin/exports": {
+            "get": {
+                "tags": [
+                    "Exports"
+                ],
+                "summary": "Lister les demandes d'export",
+                "operationId": "listExports",
+                "responses": {
+                    "200": {
+                        "description": "Demandes enregistrées.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExportListResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le rôle n'est pas super_admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Exports"
+                ],
+                "summary": "Exporter les présences d'une période",
+                "description": "Enregistre la demande (période et filtre de statut) et renvoie les lignes en JSON. Alias acceptés : startDate, endDate, statusFilter.",
+                "operationId": "createExport",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ExportWriteRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "201": {
+                        "description": "Lignes prêtes pour le fichier.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExportDataResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le rôle n'est pas super_admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Saisie invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/super-admin/exports/{id}": {
+            "get": {
+                "tags": [
+                    "Exports"
+                ],
+                "summary": "Relire un export",
+                "description": "Recalcule les lignes à partir de la période et du filtre enregistrés.",
+                "operationId": "showExport",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "format": "uuid"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Lignes de l'export.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ExportDataResponse"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Jeton invalide.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Le rôle n'est pas super_admin.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Export introuvable.",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponse"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "bearerAuth": []
+                    }
+                ]
+            }
+        },
         "/api/v1/qr/current": {
             "get": {
                 "tags": [
@@ -3009,6 +3188,213 @@
                     "message",
                     "data"
                 ]
+            },
+            "Export": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "start_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "status_filter": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "enum": [
+                            "on_time",
+                            "late",
+                            "absent",
+                            "exception"
+                        ]
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time"
+                    }
+                },
+                "required": [
+                    "id",
+                    "start_date",
+                    "end_date",
+                    "created_at"
+                ]
+            },
+            "ExportRow": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "attendance_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "attendance_date": {
+                        "type": "string",
+                        "format": "date"
+                    },
+                    "status": {
+                        "type": "string",
+                        "enum": [
+                            "on_time",
+                            "late",
+                            "absent",
+                            "exception"
+                        ]
+                    },
+                    "arrival_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "departure_at": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "format": "date-time"
+                    },
+                    "user_id": {
+                        "type": "string",
+                        "format": "uuid"
+                    },
+                    "employee_code": {
+                        "type": [
+                            "string",
+                            "null"
+                        ]
+                    },
+                    "first_name": {
+                        "type": "string"
+                    },
+                    "last_name": {
+                        "type": "string"
+                    },
+                    "work_email": {
+                        "type": "string",
+                        "format": "email"
+                    }
+                },
+                "required": [
+                    "attendance_id",
+                    "attendance_date",
+                    "status",
+                    "user_id",
+                    "first_name",
+                    "last_name",
+                    "work_email"
+                ]
+            },
+            "ExportWriteRequest": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "start_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Alias : startDate."
+                    },
+                    "end_date": {
+                        "type": "string",
+                        "format": "date",
+                        "description": "Alias : endDate."
+                    },
+                    "status_filter": {
+                        "type": [
+                            "string",
+                            "null"
+                        ],
+                        "description": "Alias : statusFilter. Absent = tous les statuts.",
+                        "enum": [
+                            "on_time",
+                            "late",
+                            "absent",
+                            "exception"
+                        ]
+                    }
+                },
+                "required": [
+                    "start_date",
+                    "end_date"
+                ]
+            },
+            "ExportListResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "exports": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/Export"
+                                }
+                            }
+                        },
+                        "required": [
+                            "exports"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
+            },
+            "ExportDataResponse": {
+                "type": "object",
+                "description": "Informations générales de l'API et schémas réutilisés par les opérations.\n\nLe jeton d'accès est opaque : ce n'est pas un JWT. Seule son empreinte\nest conservée. Les routes protégées le lisent dans Authorization: Bearer.",
+                "properties": {
+                    "success": {
+                        "type": "boolean",
+                        "example": true
+                    },
+                    "message": {
+                        "type": "string"
+                    },
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "export": {
+                                "$ref": "#/components/schemas/Export"
+                            },
+                            "rows": {
+                                "type": "array",
+                                "items": {
+                                    "$ref": "#/components/schemas/ExportRow"
+                                }
+                            }
+                        },
+                        "required": [
+                            "export",
+                            "rows"
+                        ]
+                    }
+                },
+                "required": [
+                    "success",
+                    "message",
+                    "data"
+                ]
             }
         },
         "securitySchemes": {
@@ -3039,6 +3425,10 @@
         {
             "name": "Présence",
             "description": "Pointage QR : arrivée / départ par jour. Horaire entreprise : premier horaire en base (mono-organisation)."
+        },
+        {
+            "name": "Exports",
+            "description": "Export des présences sur une période. Réservé au super_admin. L'API renvoie les lignes en JSON ; le front construit le fichier."
         }
     ]
 }

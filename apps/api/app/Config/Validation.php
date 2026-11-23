@@ -328,6 +328,32 @@ class Validation extends BaseConfig
         ],
     ];
 
+    public array $exportCreate = [
+        'start_date' => [
+            'label'  => 'Date de début',
+            'rules'  => 'required|valid_date[Y-m-d]',
+            'errors' => [
+                'required'   => 'La date de début est obligatoire.',
+                'valid_date' => 'La date de début doit être au format AAAA-MM-JJ.',
+            ],
+        ],
+        'end_date' => [
+            'label'  => 'Date de fin',
+            'rules'  => 'required|valid_date[Y-m-d]',
+            'errors' => [
+                'required'   => 'La date de fin est obligatoire.',
+                'valid_date' => 'La date de fin doit être au format AAAA-MM-JJ.',
+            ],
+        ],
+        'status_filter' => [
+            'label'  => 'Statut',
+            'rules'  => 'permit_empty|in_list[on_time,late,absent,exception]',
+            'errors' => [
+                'in_list' => 'Le statut doit être on_time, late, absent ou exception.',
+            ],
+        ],
+    ];
+
     public array $attendancePunch = [
         'hash_id' => [
             'label'  => 'QR',
