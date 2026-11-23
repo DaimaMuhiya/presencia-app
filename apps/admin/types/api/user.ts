@@ -1,0 +1,22 @@
+export type ApiUserPublic = {
+  id: string;
+  email: string;
+  work_email?: string;
+  firstName: string;
+  lastName: string;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  employeeId?: string | null;
+  employee_code?: string | null;
+  position?: string | null;
+  job_title?: string | null;
+  role: "super_admin" | "admin" | "employee";
+  workStatus?: string;
+  employment_status?: string;
+  joiningDate?: string | null;
+  joining_date?: string | null;
+  avatar?: string | null;
+  avatar_url?: string | null;
+  phone?: string | null;
+};

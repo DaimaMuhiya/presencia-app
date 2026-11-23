@@ -1,13 +1,15 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Bell, ChevronDown, CircleHelp, Menu, Search } from "lucide-react";
+import { Bell, CircleHelp, LogOut, Menu, Search } from "lucide-react";
+import { useAuth } from "@/features/auth/auth-provider";
 import {
   ADMIN_TOP_BAR_HEIGHT,
   DEMO_ADMIN_PROFILE,
   PAGE_BREADCRUMBS,
   PAGE_TITLES,
 } from "@/lib/constants";
+import { userInitials } from "@/lib/auth/user-display";
 import { cn } from "@/lib/utils";
 import { AdminContentInset } from "./admin-content-inset";
 
@@ -22,7 +24,11 @@ function matchPath(pathname: string) {
 }
 
 export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
+  const { user, logout } = useAuth();
   const pathname = usePathname();
+  const profileInitials = user
+    ? userInitials(user)
+    : DEMO_ADMIN_PROFILE.initials;
   const matchedKey = matchPath(pathname);
   const title = (matchedKey && PAGE_TITLES[matchedKey]) ?? "Presencia Admin";
   const crumbs: string[] = matchedKey
@@ -126,19 +132,23 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
 
           <span className="hidden h-5 w-px bg-border sm:block" aria-hidden />
 
-          <button
-            type="button"
-            disabled
-            className="flex items-center gap-2 rounded py-1 pr-2.5 pl-1.5"
-          >
+          <div className="flex items-center gap-1 rounded py-1 pr-1 pl-1.5">
             <span className="flex size-7 items-center justify-center rounded bg-[#dce1ff] text-xs font-bold text-primary">
-              {DEMO_ADMIN_PROFILE.initials}
+              {profileInitials}
             </span>
             <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary">
               Admin
             </span>
-            <ChevronDown className="size-2 text-text-secondary" />
-          </button>
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="rounded p-2 text-text-secondary hover:bg-muted"
+              aria-label="Se déconnecter"
+              title="Se déconnecter"
+            >
+              <LogOut className="size-4" />
+            </button>
+          </div>
         </div>
       </AdminContentInset>
     </header>

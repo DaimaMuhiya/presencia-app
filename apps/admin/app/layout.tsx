@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { Inter, Manrope } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/features/auth/auth-provider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -30,7 +31,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       lang="fr"
       className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full font-sans">{children}</body>
+      <body className="min-h-full font-sans">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }

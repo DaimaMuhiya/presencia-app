@@ -9,6 +9,7 @@
     "build:web": "pnpm --filter web build",
     "build:admin": "pnpm --filter admin build",
     "lint:web": "pnpm --filter web lint",
-    "lint:admin": "pnpm --filter admin lint"
+    "lint:admin": "pnpm --filter admin lint",
+    "test:admin": "pnpm --filter admin test"
   }
 }
