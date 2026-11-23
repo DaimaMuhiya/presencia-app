@@ -31,10 +31,10 @@
 #--------------------------------------------------------------------
 
 # MySQL
-# database.default.hostname = gateway01.ap-northeast-1.prod.aws.tidbcloud.com
-# database.default.database = test
-# database.default.username = uC99iWNPP3GSFcK.root
-# database.default.password = Hz6ryxA9gLuqPE92
+# database.default.hostname = 
+# database.default.database = 
+# database.default.username = 
+# database.default.password = 
 # database.default.DBDriver = MySQLi
 # database.default.DBPrefix =
 # database.default.port = 4000
