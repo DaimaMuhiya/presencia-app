@@ -27,7 +27,7 @@ export class BffRequestError extends Error {
 }
 
 type BffFetchOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   skipRefreshRetry?: boolean;
 };

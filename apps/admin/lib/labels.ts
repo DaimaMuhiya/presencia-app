@@ -34,6 +34,17 @@ export function attendanceLogLabel(status: AttendanceLogStatus): string {
   return map[status];
 }
 
+export function employmentStatusLabel(
+  status: "active" | "inactive" | "suspended"
+): string {
+  const map: Record<"active" | "inactive" | "suspended", string> = {
+    active: "Active",
+    inactive: "Inactive",
+    suspended: "Suspended",
+  };
+  return map[status] ?? status;
+}
+
 export function employeeStatusLabel(status: EmployeeStatus): string {
   const map: Record<EmployeeStatus, string> = {
     active: "Active",
