@@ -18,13 +18,13 @@ export async function parseJsonBody<T>(
 
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
-    return validationErrorResponse(parsed.error);
+    return zodValidationErrorResponse(parsed.error);
   }
 
   return { data: parsed.data };
 }
 
-function validationErrorResponse(error: ZodError): Response {
+export function zodValidationErrorResponse(error: ZodError): Response {
   const errors: Record<string, string> = {};
   for (const issue of error.issues) {
     const key = issue.path.join(".") || "body";
